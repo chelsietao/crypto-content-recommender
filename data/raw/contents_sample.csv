@@ -1,0 +1,7 @@
+content_id,title,summary,published_at,source,url,language,topic_tags,coin_tags,difficulty,content_type
+C0001,What Is Bitcoin?,A beginner introduction to Bitcoin and blockchain technology.,2026-07-20T08:00:00Z,Sample Learning Hub,https://example.com/bitcoin-basics,en,bitcoin|education,BTC,beginner,education
+C0002,How Ethereum Smart Contracts Work,An introduction to programs that run on Ethereum.,2026-07-21T09:00:00Z,Sample Developer Hub,https://example.com/ethereum-contracts,en,ethereum|development,ETH,intermediate,education
+C0003,How to Protect a Crypto Wallet,Basic practices for wallet and account security.,2026-07-22T10:00:00Z,Sample Security Hub,https://example.com/wallet-security,en,security|wallet,,beginner,education
+C0004,Introduction to Decentralized Finance,A beginner overview of DeFi applications and risks.,2026-07-23T11:00:00Z,Sample DeFi Hub,https://example.com/defi-introduction,en,defi|education,ETH,beginner,education
+C0005,What Are Stablecoins?,An explanation of stablecoins and their common use cases.,2026-07-24T12:00:00Z,Sample Learning Hub,https://example.com/stablecoins,en,stablecoin|education,USDT|USDC,beginner,education
+C0006,Understanding NFT Creator Communities,An overview of NFTs and digital creator communities.,2026-07-25T13:00:00Z,Sample Creator Hub,https://example.com/nft-creators,en,nft|creator-economy,ETH,beginner,analysis

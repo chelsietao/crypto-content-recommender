@@ -1,0 +1,4 @@
+user_id,persona,experience_level,preferred_topics,preferred_coins,preferred_language,created_at
+U0001,Beginner Education Explorer,beginner,education|security,BTC|ETH,en,2026-07-01T09:00:00Z
+U0002,Ethereum Developer,intermediate,ethereum|development,ETH,en,2026-07-02T09:00:00Z
+U0003,DeFi Explorer,intermediate,defi|stablecoin,ETH|USDT|USDC,en,2026-07-03T09:00:00Z

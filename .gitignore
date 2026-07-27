@@ -32,3 +32,4 @@ data/processed/*
 # Keep empty data directories
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/raw/*_sample.csv
