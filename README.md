@@ -147,7 +147,7 @@ The app contains:
 ├── tests/                       # Data, split, model, and metric tests
 ├── reports/                     # Schema, EDA, experiments, A/B design
 ├── data/raw/                    # Small teaching samples only
-├── data/processed/              # Generated locally; ignored by Git
+├── data/processed/              # Committed reproducible synthetic dataset
 └── artifacts/                   # Generated metrics/charts; ignored by Git
 ```
 
@@ -176,3 +176,7 @@ The app contains:
 
 Code is provided as a portfolio research implementation. Generated URLs and behavioral records are
 synthetic. The small CSV files in `data/raw/` are teaching fixtures, not scraped articles.
+
+The repository includes the deterministic generated dataset under `data/processed/`: 240 content
+items, 80 synthetic users, and 8,564 interaction events. Running `python -m src.run_pipeline`
+recreates these files with the same random seed.

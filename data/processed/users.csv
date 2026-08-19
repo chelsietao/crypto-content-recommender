@@ -1,0 +1,81 @@
+user_id,persona,experience_level,preferred_topics,preferred_coins,preferred_language,created_at
+U0001,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-13 00:00:00+00:00
+U0002,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-17 00:00:00+00:00
+U0003,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-11 00:00:00+00:00
+U0004,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-02 00:00:00+00:00
+U0005,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-15 00:00:00+00:00
+U0006,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-01 00:00:00+00:00
+U0007,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-07 00:00:00+00:00
+U0008,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-21 00:00:00+00:00
+U0009,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-12 00:00:00+00:00
+U0010,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-15 00:00:00+00:00
+U0011,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-25 00:00:00+00:00
+U0012,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-06 00:00:00+00:00
+U0013,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-22 00:00:00+00:00
+U0014,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-19 00:00:00+00:00
+U0015,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-10 00:00:00+00:00
+U0016,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-07 00:00:00+00:00
+U0017,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-07 00:00:00+00:00
+U0018,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-11 00:00:00+00:00
+U0019,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-16 00:00:00+00:00
+U0020,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-12 00:00:00+00:00
+U0021,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-04 00:00:00+00:00
+U0022,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-24 00:00:00+00:00
+U0023,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-10 00:00:00+00:00
+U0024,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-23 00:00:00+00:00
+U0025,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-05 00:00:00+00:00
+U0026,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-07 00:00:00+00:00
+U0027,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-20 00:00:00+00:00
+U0028,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-07 00:00:00+00:00
+U0029,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-23 00:00:00+00:00
+U0030,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-11 00:00:00+00:00
+U0031,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-12 00:00:00+00:00
+U0032,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-01 00:00:00+00:00
+U0033,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-11 00:00:00+00:00
+U0034,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-08 00:00:00+00:00
+U0035,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-14 00:00:00+00:00
+U0036,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-24 00:00:00+00:00
+U0037,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-01 00:00:00+00:00
+U0038,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-21 00:00:00+00:00
+U0039,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-10 00:00:00+00:00
+U0040,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-14 00:00:00+00:00
+U0041,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-12 00:00:00+00:00
+U0042,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-13 00:00:00+00:00
+U0043,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-21 00:00:00+00:00
+U0044,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-24 00:00:00+00:00
+U0045,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-25 00:00:00+00:00
+U0046,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-15 00:00:00+00:00
+U0047,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-18 00:00:00+00:00
+U0048,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-24 00:00:00+00:00
+U0049,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-24 00:00:00+00:00
+U0050,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-25 00:00:00+00:00
+U0051,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-02 00:00:00+00:00
+U0052,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-01 00:00:00+00:00
+U0053,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-15 00:00:00+00:00
+U0054,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-03 00:00:00+00:00
+U0055,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-22 00:00:00+00:00
+U0056,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-20 00:00:00+00:00
+U0057,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-04 00:00:00+00:00
+U0058,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-04 00:00:00+00:00
+U0059,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-03 00:00:00+00:00
+U0060,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-09 00:00:00+00:00
+U0061,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-22 00:00:00+00:00
+U0062,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-08 00:00:00+00:00
+U0063,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-18 00:00:00+00:00
+U0064,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-14 00:00:00+00:00
+U0065,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-16 00:00:00+00:00
+U0066,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-02 00:00:00+00:00
+U0067,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-17 00:00:00+00:00
+U0068,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-12 00:00:00+00:00
+U0069,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-04 00:00:00+00:00
+U0070,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-14 00:00:00+00:00
+U0071,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-16 00:00:00+00:00
+U0072,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-03 00:00:00+00:00
+U0073,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-13 00:00:00+00:00
+U0074,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-09 00:00:00+00:00
+U0075,Ethereum Developer,advanced,ethereum|development|security,ETH,en,2025-12-19 00:00:00+00:00
+U0076,DeFi Explorer,intermediate,defi|stablecoin|on-chain,ETH|USDT|USDC,en,2025-12-13 00:00:00+00:00
+U0077,NFT and Creator Economy Reader,beginner,nft|creator-economy|ethereum,ETH|SOL,en,2025-12-01 00:00:00+00:00
+U0078,Multi-topic Discovery User,intermediate,education|defi|macro|on-chain,BTC|ETH|BNB|SOL,en,2025-12-08 00:00:00+00:00
+U0079,Beginner Education Explorer,beginner,education|security|bitcoin,BTC|ETH,en,2025-12-15 00:00:00+00:00
+U0080,Bitcoin and Macro Reader,intermediate,bitcoin|macro|regulation,BTC,en,2025-12-11 00:00:00+00:00

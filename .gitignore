@@ -33,3 +33,6 @@ data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/raw/*_sample.csv
+!data/processed/contents.csv
+!data/processed/users.csv
+!data/processed/interactions.csv
