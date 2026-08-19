@@ -148,8 +148,12 @@ The app contains:
 ├── reports/                     # Schema, EDA, experiments, A/B design
 ├── data/raw/                    # Small teaching samples only
 ├── data/processed/              # Committed reproducible synthetic dataset
-└── artifacts/                   # Generated metrics/charts; ignored by Git
+└── artifacts/                   # Curated metrics, charts, and recommendation samples
 ```
+
+The repository tracks portfolio-ready experiment outputs. Reproducible cache and
+split files, including `fontlist-v390.json`, `train_interactions.csv`, and
+`test_holdout.csv`, remain excluded from Git.
 
 ## Skills demonstrated
 

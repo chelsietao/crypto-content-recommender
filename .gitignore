@@ -23,7 +23,21 @@ venv/
 
 # Models and generated artifacts
 models/
-artifacts/
+artifacts/*
+
+# Keep curated portfolio outputs in Git
+!artifacts/eda_distributions.png
+!artifacts/evaluation_details.csv
+!artifacts/failure_analysis.csv
+!artifacts/model_metrics.csv
+!artifacts/ranker_coefficients.csv
+!artifacts/recommendations_v1_popularity.csv
+!artifacts/recommendations_v2_content_based.csv
+!artifacts/recommendations_v3_collaborative_filtering.csv
+!artifacts/recommendations_v4_hybrid.csv
+!artifacts/recommendations_v5_logistic_ranker.csv
+!artifacts/recommendations_v6_diversity_reranking.csv
+!artifacts/run_summary.json
 
 # Raw and processed datasets
 data/raw/*

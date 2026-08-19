@@ -1,0 +1,16 @@
+{
+  "contents": 240,
+  "users": 80,
+  "events": 8564,
+  "train_events": 8385,
+  "test_users": 80,
+  "models": [
+    "v1_popularity",
+    "v2_content_based",
+    "v3_collaborative_filtering",
+    "v4_hybrid",
+    "v5_logistic_ranker",
+    "v6_diversity_reranking"
+  ],
+  "top_k": 10
+}
