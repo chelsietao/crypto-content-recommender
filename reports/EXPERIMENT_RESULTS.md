@@ -1,36 +1,20 @@
-# Offline Experiment Results
+# Offline Recommendation Evaluation
 
-## Evaluation design
+Training interactions and the content catalog are frozen at one global cutoff, and each evaluated user contributes the first eligible positive item after that cutoff.
+Targets were available at the cutoff and absent from that user's training history, and hidden pairs are excluded from positive labels.
 
-For each synthetic user, the latest positive user-content interaction is held out.
-All events for that held-out pair are removed from training. Models must rank the
-held-out item in the top 10 while excluding items observed during training.
-This chronological leave-one-out design is more realistic than a random split, but
-results remain synthetic and do not demonstrate production impact.
+The ranker uses a separate historical feature snapshot within the training period, and labels come from the subsequent window.
 
 ## Results
 
-| model                      |   hit_rate@10 |   recall@10 |   ndcg@10 |   catalog_coverage |   intra_list_diversity |   mean_topic_coverage |   mean_source_coverage |   evaluated_users |
-|:---------------------------|--------------:|------------:|----------:|-------------------:|-----------------------:|----------------------:|-----------------------:|------------------:|
-| v1_popularity              |        0.1875 |      0.1875 |    0.0921 |             0.1    |                 0.858  |                9.7375 |                 6.4    |                80 |
-| v2_content_based           |        0.2375 |      0.2375 |    0.1037 |             0.8458 |                 0.6743 |                7.0875 |                 3.975  |                80 |
-| v3_collaborative_filtering |        0.0625 |      0.0625 |    0.0313 |             0.8667 |                 0.8758 |                9.9125 |                 6.025  |                80 |
-| v4_hybrid                  |        0.225  |      0.225  |    0.0934 |             0.775  |                 0.7216 |                7.7125 |                 4.525  |                80 |
-| v5_logistic_ranker         |        0.1    |      0.1    |    0.0447 |             0.8375 |                 0.7297 |                7.8375 |                 4.4375 |                80 |
-| v6_diversity_reranking     |        0.1    |      0.1    |    0.0435 |             0.875  |                 0.8559 |                9.475  |                 6.5    |                80 |
+| model                      |   hit_rate@10 |   recall@10 |   ndcg@10 |   candidate_recall |   catalog_coverage |   intra_list_diversity |   mean_topic_coverage |   mean_source_coverage |   evaluated_users |
+|:---------------------------|--------------:|------------:|----------:|-------------------:|-------------------:|-----------------------:|----------------------:|-----------------------:|------------------:|
+| v1_popularity              |        0.1333 |      0.1333 |    0.0525 |                  1 |             0.1005 |                 0.8657 |                9.9    |                 6.2333 |                30 |
+| v2_content_based           |        0.1333 |      0.1333 |    0.0711 |                  1 |             0.6884 |                 0.6988 |                7.3667 |                 4.2    |                30 |
+| v3_collaborative_filtering |        0.0333 |      0.0333 |    0.0105 |                  1 |             0.7688 |                 0.8758 |                9.6    |                 5.9333 |                30 |
+| v4_hybrid                  |        0.1333 |      0.1333 |    0.0617 |                  1 |             0.6281 |                 0.7499 |                7.7    |                 4.4333 |                30 |
+| v5_logistic_ranker         |        0.6667 |      0.6667 |    0.4104 |                  1 |             0.4322 |                 0.8175 |                8.6333 |                 5.5    |                30 |
+| v6_diversity_reranking     |        0.6667 |      0.6667 |    0.4114 |                  1 |             0.4372 |                 0.8978 |               10.8333 |                 6.4    |                30 |
 
-## Findings
-
-- Best NDCG@10: **v2_content_based** (0.1037).
-- Best intra-list diversity: **v3_collaborative_filtering** (0.8758).
-- Popularity is a necessary baseline, not a personalized solution.
-- Content-based retrieval supports new-item and low-history scenarios.
-- Collaborative filtering depends on sufficient co-interaction density.
-- Hybrid and ranking stages combine complementary signals.
-- Diversity reranking explicitly trades a small amount of relevance for healthier exposure.
-
-## Interpretation limits
-
-- Users and interactions are deterministic synthetic data.
-- Offline ranking metrics cannot be interpreted as real CTR or retention lift.
-- A real deployment requires online experimentation, safety review, and data-quality monitoring.
+Hit Rate and Recall match because evaluation uses one target per user, and candidate recall records whether that target entered the model's candidate pool.
+Catalog coverage uses the frozen content catalog as its denominator, and diversity uses the average pairwise topic-tag distance within each result list.

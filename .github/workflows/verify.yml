@@ -1,0 +1,32 @@
+name: Verify recommendation system
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+      - run: python -m src.run_pipeline
+        env:
+          MPLBACKEND: Agg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: recommendation-evaluation
+          path: |
+            artifacts/model_metrics.csv
+            artifacts/evaluation_details.csv
+            artifacts/run_summary.json
+            reports/EXPERIMENT_RESULTS.md

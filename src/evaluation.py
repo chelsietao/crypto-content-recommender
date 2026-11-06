@@ -8,32 +8,52 @@ import numpy as np
 import pandas as pd
 
 from src.config import EVENT_WEIGHTS, TOP_K
-from src.recommenders import BaseRecommender, split_tags
+from src.recommenders import BaseRecommender, aggregate_interactions, split_tags, validate_k
 
 
 @dataclass(frozen=True)
 class TemporalSplit:
     train: pd.DataFrame
     test: pd.DataFrame
+    contents: pd.DataFrame
+    cutoff: pd.Timestamp
 
 
-def leave_latest_positive_out(interactions: pd.DataFrame) -> TemporalSplit:
-    weighted = interactions.copy()
-    weighted["weight"] = weighted["event_type"].map(EVENT_WEIGHTS)
-    positives = weighted[weighted["weight"] > 0].copy()
-    latest = (
-        positives.sort_values("timestamp")
-        .groupby("user_id", as_index=False)
-        .tail(1)[["user_id", "content_id", "timestamp"]]
-        .rename(columns={"timestamp": "test_timestamp"})
+def chronological_holdout(
+    interactions: pd.DataFrame,
+    contents: pd.DataFrame,
+    train_fraction: float = 0.8,
+) -> TemporalSplit:
+    """Freeze training and catalog at one global cutoff, evaluate later unseen positives."""
+    if not 0 < train_fraction < 1:
+        raise ValueError("train_fraction must be between 0 and 1")
+    times = interactions["timestamp"].sort_values().drop_duplicates().reset_index(drop=True)
+    if len(times) < 2:
+        raise ValueError("At least two distinct event timestamps are required")
+    index = min(max(int(len(times) * train_fraction) - 1, 0), len(times) - 2)
+    cutoff = times.iloc[index]
+    catalog = contents.loc[contents["published_at"] <= cutoff].reset_index(drop=True).copy()
+    train = interactions.loc[interactions["timestamp"] <= cutoff].copy()
+    train = train.loc[train["content_id"].isin(catalog["content_id"])].reset_index(drop=True)
+    later = interactions.loc[
+        (interactions["timestamp"] > cutoff)
+        & interactions["content_id"].isin(catalog["content_id"])
+    ].copy()
+    # The evaluation target must not have appeared in the frozen training history.
+    seen = pd.MultiIndex.from_frame(train[["user_id", "content_id"]])
+    later = later.loc[~pd.MultiIndex.from_frame(later[["user_id", "content_id"]]).isin(seen)]
+    labels = aggregate_interactions(later)
+    positive_pairs = labels.loc[labels["preference"] > 0, ["user_id", "content_id"]]
+    positives = later.loc[later["event_type"].map(EVENT_WEIGHTS) > 0].merge(
+        positive_pairs, on=["user_id", "content_id"], how="inner"
     )
-    holdout_pairs = set(zip(latest["user_id"], latest["content_id"]))
-    keep = [
-        (user_id, content_id) not in holdout_pairs
-        for user_id, content_id in zip(weighted["user_id"], weighted["content_id"])
-    ]
-    train = weighted.loc[keep].drop(columns="weight").reset_index(drop=True)
-    return TemporalSplit(train=train, test=latest.reset_index(drop=True))
+    test = (
+        positives.sort_values(["timestamp", "event_id"], kind="stable")
+        .groupby("user_id", as_index=False).head(1)
+        [["user_id", "content_id", "timestamp"]]
+        .rename(columns={"timestamp": "test_timestamp"}).reset_index(drop=True)
+    )
+    return TemporalSplit(train=train, test=test, contents=catalog, cutoff=cutoff)
 
 
 def intra_list_diversity(recommendations: pd.DataFrame) -> float:
@@ -54,6 +74,11 @@ def evaluate_model(
     test: pd.DataFrame,
     k: int = TOP_K,
 ) -> tuple[dict[str, float], pd.DataFrame]:
+    validate_k(k)
+    if k == 0:
+        raise ValueError("Evaluation k must be positive")
+    if test.empty:
+        raise ValueError("Evaluation requires at least one eligible test target")
     rows: list[dict[str, object]] = []
     all_recommended: set[str] = set()
     diversities: list[float] = []
@@ -76,7 +101,7 @@ def evaluate_model(
             hit = 1.0
             ndcg = 1.0 / np.log2(rank + 1)
         else:
-            rank = None
+            rank = np.nan
             hit = 0.0
             ndcg = 0.0
         rows.append(
@@ -88,6 +113,7 @@ def evaluate_model(
                 "hit_at_k": hit,
                 "recall_at_k": hit,
                 "ndcg_at_k": ndcg,
+                "target_in_candidates": int(record.content_id in model.candidate_ids(record.user_id)),
             }
         )
 
@@ -97,6 +123,7 @@ def evaluate_model(
         f"hit_rate@{k}": float(details["hit_at_k"].mean()),
         f"recall@{k}": float(details["recall_at_k"].mean()),
         f"ndcg@{k}": float(details["ndcg_at_k"].mean()),
+        "candidate_recall": float(details["target_in_candidates"].mean()),
         "catalog_coverage": len(all_recommended) / max(len(model.contents), 1),
         "intra_list_diversity": float(np.mean(diversities)),
         "mean_topic_coverage": float(np.mean(topic_coverages)),
@@ -133,28 +160,7 @@ def build_failure_analysis(
         right_on="content_id",
         how="left",
     )
-    failed["failure_hypothesis"] = np.select(
-        [
-            failed["model"].eq("v1_popularity"),
-            failed["model"].eq("v3_collaborative_filtering"),
-            failed["experience_level"].ne(failed["difficulty"]),
-        ],
-        [
-            "Global popularity did not capture the user's niche interest.",
-            "Sparse co-interaction history limited collaborative signal.",
-            "Recommended pool may not match the user's preferred difficulty.",
-        ],
-        default="The held-out interest was not represented strongly enough in candidate scores.",
-    )
     return failed[
-        [
-            "model",
-            "user_id",
-            "persona",
-            "target_content_id",
-            "title",
-            "topic_tags",
-            "coin_tags",
-            "failure_hypothesis",
-        ]
-    ].head(80)
+        ["model", "user_id", "persona", "target_content_id", "title", "topic_tags",
+         "coin_tags", "target_in_candidates"]
+    ].reset_index(drop=True)

@@ -10,129 +10,38 @@ import pandas as pd
 from src.analytics import product_analytics, save_eda_charts, write_eda_report
 from src.config import ARTIFACTS_DIR, REPORTS_DIR, TOP_K
 from src.data_pipeline import build_dataset
-from src.evaluation import build_failure_analysis, evaluate_all, leave_latest_positive_out
+from src.evaluation import build_failure_analysis, evaluate_all, chronological_holdout
 from src.recommenders import RankingRecommender, build_all_models
 
 
-def _format_metric(value: float) -> str:
-    return f"{value:.4f}"
-
-
 def write_experiment_report(metrics: pd.DataFrame, path: Path) -> None:
-    best_relevance = metrics.sort_values(f"ndcg@{TOP_K}", ascending=False).iloc[0]
-    best_diversity = metrics.sort_values("intra_list_diversity", ascending=False).iloc[0]
     lines = [
-        "# Offline Experiment Results",
-        "",
-        "## Evaluation design",
-        "",
-        "For each synthetic user, the latest positive user-content interaction is held out.",
-        "All events for that held-out pair are removed from training. Models must rank the",
-        f"held-out item in the top {TOP_K} while excluding items observed during training.",
-        "This chronological leave-one-out design is more realistic than a random split, but",
-        "results remain synthetic and do not demonstrate production impact.",
-        "",
-        "## Results",
-        "",
-        metrics.round(4).to_markdown(index=False),
-        "",
-        "## Findings",
-        "",
-        f"- Best NDCG@{TOP_K}: **{best_relevance['model']}** ({_format_metric(best_relevance[f'ndcg@{TOP_K}'])}).",
-        f"- Best intra-list diversity: **{best_diversity['model']}** ({_format_metric(best_diversity['intra_list_diversity'])}).",
-        "- Popularity is a necessary baseline, not a personalized solution.",
-        "- Content-based retrieval supports new-item and low-history scenarios.",
-        "- Collaborative filtering depends on sufficient co-interaction density.",
-        "- Hybrid and ranking stages combine complementary signals.",
-        "- Diversity reranking explicitly trades a small amount of relevance for healthier exposure.",
-        "",
-        "## Interpretation limits",
-        "",
-        "- Users and interactions are deterministic synthetic data.",
-        "- Offline ranking metrics cannot be interpreted as real CTR or retention lift.",
-        "- A real deployment requires online experimentation, safety review, and data-quality monitoring.",
+        "# Offline Recommendation Evaluation", "",
+        "Training interactions and the content catalog are frozen at one global cutoff, "
+        "and each evaluated user contributes the first eligible positive item after that cutoff.",
+        "Targets were available at the cutoff and absent from that user's training history, "
+        "and hidden pairs are excluded from positive labels.", "",
+        "The ranker uses a separate historical feature snapshot within the training period, "
+        "and labels come from the subsequent window.", "",
+        "## Results", "", metrics.round(4).to_markdown(index=False), "",
+        "Hit Rate and Recall match because evaluation uses one target per user, "
+        "and candidate recall records whether that target entered the model's candidate pool.",
+        "Catalog coverage uses the frozen content catalog as its denominator, "
+        "and diversity uses the average pairwise topic-tag distance within each result list.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def write_ab_test_proposal(path: Path) -> None:
-    text = """# A/B Test Proposal
-
-## Objective
-
-Determine whether the personalized, diversity-aware feed improves meaningful content discovery
-relative to a time-decayed popularity feed.
-
-## Variants
-
-- **Control:** time-decayed popularity recommendation (V1).
-- **Treatment:** logistic ranking followed by diversity reranking (V6).
-
-## Hypothesis
-
-Treatment increases meaningful engagement and content coverage without materially increasing
-negative feedback.
-
-## Unit and allocation
-
-- Randomization unit: authenticated user ID.
-- Allocation: 50% control / 50% treatment.
-- Sticky assignment for the full experiment.
-- Exclude employees, bots, and users with invalid instrumentation.
-
-## Metrics
-
-- Primary: meaningful engagement rate (like or save per eligible impression).
-- Secondary: CTR, dwell time, session depth, day-7 return rate, creator coverage.
-- Guardrails: hide/report rate, latency p95, source concentration, policy-violating exposure.
-
-## Analysis
-
-- Pre-register sample-size assumptions before launch.
-- Compare intention-to-treat groups with 95% confidence intervals.
-- Segment by new vs. established users, language, and activity level.
-- Do not stop early solely because a metric becomes temporarily significant.
-- Ship only if the primary metric improves and no guardrail crosses its agreed threshold.
-
-## Instrumentation requirements
-
-Every recommendation impression must record model version, rank, request ID, user assignment,
-content ID, timestamp in UTC, latency, and subsequent interaction events.
-
-## Caveat
-
-This document is a product experiment proposal. No online experiment was performed in this
-portfolio project.
-"""
-    path.write_text(text, encoding="utf-8")
-
-
 def write_failure_report(failures: pd.DataFrame, path: Path) -> None:
-    counts = failures.groupby(["model", "failure_hypothesis"]).size().reset_index(name="examples")
-    text = "\n".join(
-        [
-            "# Recommendation Failure Analysis",
-            "",
-            "This report samples missed held-out items and assigns a testable failure hypothesis.",
-            "The labels are diagnostic heuristics, not verified root causes.",
-            "",
-            "## Failure categories",
-            "",
-            counts.to_markdown(index=False),
-            "",
-            "## Sample cases",
-            "",
-            failures.head(30).to_markdown(index=False),
-            "",
-            "## Follow-up experiments",
-            "",
-            "1. Add position-aware negative sampling from eligible impressions.",
-            "2. Compare short-term and long-term interest profiles.",
-            "3. Calibrate ranker probabilities by persona and activity cohort.",
-            "4. Add semantic embeddings and multilingual content representations.",
-            "5. Test source-quality and safety constraints as explicit guardrails.",
-        ]
-    )
+    counts = failures.groupby(["model", "target_in_candidates"]).size().reset_index(name="missed_targets")
+    text = "\n".join([
+        "# Recommendation Miss Analysis", "",
+        "Every missed target is retained in the CSV, with its candidate-pool membership recorded.",
+        "A value of 0 identifies a recall-stage miss, and a value of 1 identifies a target that "
+        "entered the pool but did not appear in the final result list.", "",
+        "## Counts", "", counts.to_markdown(index=False), "",
+        "## Sample records", "", failures.groupby("model", group_keys=False).head(5).to_markdown(index=False),
+    ])
     path.write_text(text + "\n", encoding="utf-8")
 
 
@@ -143,8 +52,8 @@ def main() -> None:
     analytics_tables = product_analytics(bundle)
     write_eda_report(bundle, analytics_tables)
     save_eda_charts(bundle)
-    split = leave_latest_positive_out(bundle.interactions)
-    models = build_all_models(bundle.contents, bundle.users, split.train)
+    split = chronological_holdout(bundle.interactions, bundle.contents)
+    models = build_all_models(split.contents, bundle.users, split.train)
     metrics, details = evaluate_all(models, split.test)
     failures = build_failure_analysis(details, bundle.users, bundle.contents)
 
@@ -165,7 +74,6 @@ def main() -> None:
         )
 
     write_experiment_report(metrics, REPORTS_DIR / "EXPERIMENT_RESULTS.md")
-    write_ab_test_proposal(REPORTS_DIR / "AB_TEST_PROPOSAL.md")
     write_failure_report(failures, REPORTS_DIR / "FAILURE_ANALYSIS.md")
     (ARTIFACTS_DIR / "run_summary.json").write_text(
         json.dumps(
@@ -174,6 +82,11 @@ def main() -> None:
                 "users": len(bundle.users),
                 "events": len(bundle.interactions),
                 "train_events": len(split.train),
+                "training_cutoff": split.cutoff.isoformat(),
+                "eligible_contents": len(split.contents),
+                "ranker_feature_cutoff": ranking.feature_cutoff.isoformat(),
+                "ranker_training_examples": ranking.training_feature_rows,
+                "ranker_training_mode": ranking.training_mode,
                 "test_users": len(split.test),
                 "models": list(models),
                 "top_k": TOP_K,

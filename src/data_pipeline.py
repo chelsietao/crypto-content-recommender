@@ -289,20 +289,39 @@ def validate_bundle(bundle: DatasetBundle) -> None:
     }
     required_events = {"event_id", "user_id", "content_id", "event_type", "timestamp", "session_id"}
 
-    assert required_content.issubset(contents.columns)
-    assert required_users.issubset(users.columns)
-    assert required_events.issubset(interactions.columns)
-    assert contents["content_id"].is_unique
-    assert contents["url"].is_unique
-    assert users["user_id"].is_unique
-    assert interactions["event_id"].is_unique
-    assert set(interactions["event_type"]).issubset(EVENT_WEIGHTS)
-    assert set(interactions["user_id"]).issubset(set(users["user_id"]))
-    assert set(interactions["content_id"]).issubset(set(contents["content_id"]))
-    assert contents["published_at"].notna().all()
-    assert interactions["timestamp"].notna().all()
-    assert contents["title"].str.len().gt(0).all()
-    assert contents["topic_tags"].str.len().gt(0).all()
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+            raise ValueError(message)
+
+    for name, frame, required in (
+        ("contents", contents, required_content),
+        ("users", users, required_users),
+        ("interactions", interactions, required_events),
+    ):
+        require(required.issubset(frame.columns), f"{name}: missing required columns")
+    require(not contents.empty and not users.empty, "Content and user tables must not be empty")
+    for name, frame, identifier in (
+        ("contents", contents, "content_id"), ("users", users, "user_id"),
+        ("interactions", interactions, "event_id"),
+    ):
+        require(frame[identifier].notna().all() and frame[identifier].is_unique,
+                f"{name}: IDs must be present and unique")
+    require(contents["url"].notna().all() and contents["url"].is_unique,
+            "Content URLs must be present and unique")
+    require(interactions["event_type"].isin(EVENT_WEIGHTS).all(), "Unknown event type")
+    require(interactions["user_id"].isin(users["user_id"]).all(), "Unknown user reference")
+    require(interactions["content_id"].isin(contents["content_id"]).all(), "Unknown content reference")
+    for frame, column in ((contents, "published_at"), (users, "created_at"), (interactions, "timestamp")):
+        require(isinstance(frame[column].dtype, pd.DatetimeTZDtype), f"{column} must be timezone-aware")
+        require(frame[column].notna().all(), f"{column} must be present")
+    for column in ("title", "topic_tags", "source"):
+        require(contents[column].fillna("").str.strip().str.len().gt(0).all(), f"{column} must be nonempty")
+    quality = pd.to_numeric(contents["quality_score"], errors="coerce")
+    require(quality.between(0, 1).all(), "quality_score must be a finite number between 0 and 1")
+    events = interactions.merge(contents[["content_id", "published_at"]], on="content_id")
+    events = events.merge(users[["user_id", "created_at"]], on="user_id")
+    require((events["timestamp"] >= events["published_at"]).all(), "Event precedes content publication")
+    require((events["timestamp"] >= events["created_at"]).all(), "Event precedes user creation")
 
 
 def save_bundle(bundle: DatasetBundle, directory: Path = PROCESSED_DATA_DIR) -> None:

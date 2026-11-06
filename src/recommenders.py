@@ -29,7 +29,7 @@ def aggregate_interactions(interactions: pd.DataFrame) -> pd.DataFrame:
     return (
         weighted.groupby(["user_id", "content_id"], as_index=False)
         .agg(
-            preference=("event_weight", "max"),
+            preference=("event_weight", lambda values: float(values.min()) if (values < 0).any() else float(values.max())),
             event_count=("event_id", "count"),
             last_timestamp=("timestamp", "max"),
             was_impressed=("event_type", lambda values: int("impression" in set(values))),
@@ -40,14 +40,31 @@ def aggregate_interactions(interactions: pd.DataFrame) -> pd.DataFrame:
 
 def minmax(values: np.ndarray) -> np.ndarray:
     values = np.asarray(values, dtype=float)
+    result = np.zeros_like(values)
     finite = np.isfinite(values)
     if not finite.any():
-        return np.zeros_like(values)
-    low = values[finite].min()
-    high = values[finite].max()
+        return result
+    low, high = values[finite].min(), values[finite].max()
     if np.isclose(low, high):
-        return np.ones_like(values) if high > 0 else np.zeros_like(values)
-    return (values - low) / (high - low)
+        result[finite] = float(high > 0)
+    else:
+        result[finite] = (values[finite] - low) / (high - low)
+    return result
+
+
+def validate_k(k: int) -> None:
+    if isinstance(k, bool) or not isinstance(k, (int, np.integer)) or k < 0:
+        raise ValueError("k must be a non-negative integer")
+
+
+def top_results(contents: pd.DataFrame, scores: np.ndarray, k: int, model: str) -> pd.DataFrame:
+    validate_k(k)
+    indices = np.flatnonzero(np.isfinite(scores))
+    indices = indices[np.argsort(-scores[indices], kind="stable")[:k]]
+    result = contents.iloc[indices].copy()
+    result["score"] = scores[indices]
+    result["model"] = model
+    return result.reset_index(drop=True)
 
 
 class BaseRecommender(ABC):
@@ -65,6 +82,14 @@ class BaseRecommender(ABC):
         users: pd.DataFrame,
         interactions: pd.DataFrame,
     ) -> "BaseRecommender":
+        if contents.empty:
+            raise ValueError("At least one content item is required")
+        if not contents["content_id"].is_unique or not users["user_id"].is_unique:
+            raise ValueError("Content and user IDs must be unique")
+        if not set(interactions["content_id"]).issubset(set(contents["content_id"])):
+            raise ValueError("Interactions reference unknown content IDs")
+        if not set(interactions["user_id"]).issubset(set(users["user_id"])):
+            raise ValueError("Interactions reference unknown user IDs")
         self.contents = contents.reset_index(drop=True).copy()
         self.users = users.reset_index(drop=True).copy()
         self.interactions = interactions.copy()
@@ -83,20 +108,17 @@ class BaseRecommender(ABC):
     def score_all(self, user_id: str) -> np.ndarray:
         raise NotImplementedError
 
+    def candidate_ids(self, user_id: str, exclude_seen: bool = True) -> list[str]:
+        seen = self.seen_by_user.get(user_id, set()) if exclude_seen else set()
+        return [content_id for content_id in self.content_ids if content_id not in seen]
+
     def recommend(self, user_id: str, k: int = 10, exclude_seen: bool = True) -> pd.DataFrame:
         scores = np.asarray(self.score_all(user_id), dtype=float).copy()
         if exclude_seen:
             for content_id in self.seen_by_user.get(user_id, set()):
                 if content_id in self.content_index:
                     scores[self.content_index[content_id]] = -np.inf
-        k = min(k, int(np.isfinite(scores).sum()))
-        if k <= 0:
-            return pd.DataFrame(columns=[*self.contents.columns, "score", "model"])
-        top_indices = np.argsort(-scores)[:k]
-        result = self.contents.iloc[top_indices].copy()
-        result["score"] = scores[top_indices]
-        result["model"] = self.name
-        return result.reset_index(drop=True)
+        return top_results(self.contents, scores, k, self.name)
 
 
 class PopularityRecommender(BaseRecommender):
@@ -109,10 +131,9 @@ class PopularityRecommender(BaseRecommender):
     def _fit(self) -> None:
         weighted = self.interactions.copy()
         weighted["weight"] = weighted["event_type"].map(EVENT_WEIGHTS).astype(float)
-        reference = max(
-            self.contents["published_at"].max(),
-            self.interactions["timestamp"].max(),
-        )
+        reference = self.contents["published_at"].max()
+        if not self.interactions.empty:
+            reference = max(reference, self.interactions["timestamp"].max())
         age_days = (reference - weighted["timestamp"]).dt.total_seconds() / 86400.0
         weighted["decay"] = np.exp(-np.log(2) * age_days / self.half_life_days)
         weighted["weighted_score"] = weighted["weight"] * weighted["decay"]
@@ -199,40 +220,54 @@ class ContentBasedRecommender(BaseRecommender):
 class CollaborativeFilteringRecommender(BaseRecommender):
     name = "v3_collaborative_filtering"
 
+    def __init__(self, neighbors: int = 40, block_size: int = 128) -> None:
+        super().__init__()
+        if neighbors <= 0 or block_size <= 0:
+            raise ValueError("neighbors and block_size must be positive")
+        self.neighbors = neighbors
+        self.block_size = block_size
+
     def _fit(self) -> None:
         aggregated = aggregate_interactions(self.interactions)
-        user_ids = self.users["user_id"].tolist()
-        self.user_index = {user_id: idx for idx, user_id in enumerate(user_ids)}
-        matrix = np.zeros((len(user_ids), len(self.contents)), dtype=float)
-        for row in aggregated.itertuples():
-            if row.user_id in self.user_index and row.content_id in self.content_index:
-                matrix[self.user_index[row.user_id], self.content_index[row.content_id]] = row.preference
-        self.user_item = matrix
-        # NumPy's Accelerate-backed matmul can emit spurious overflow warnings
-        # for small normalized matrices on some macOS/Python combinations.
-        # einsum is deterministic here and makes the cosine calculation explicit.
-        item_vectors = matrix.T
-        norms = np.linalg.norm(item_vectors, axis=1, keepdims=True)
-        normalized = np.divide(
-            item_vectors,
-            norms,
-            out=np.zeros_like(item_vectors),
-            where=norms > 0,
+        self.user_index = {value: index for index, value in enumerate(self.users["user_id"])}
+        valid = aggregated.loc[
+            aggregated["user_id"].isin(self.user_index)
+            & aggregated["content_id"].isin(self.content_index)
+        ]
+        self.user_item = sparse.csr_matrix(
+            (valid["preference"].to_numpy(),
+             (valid["user_id"].map(self.user_index), valid["content_id"].map(self.content_index))),
+            shape=(len(self.user_index), len(self.contents)), dtype=float,
         )
-        self.item_similarity = np.einsum("ik,jk->ij", normalized, normalized)
-        np.fill_diagonal(self.item_similarity, 0.0)
+        item_vectors = self.user_item.T.tocsr()
+        blocks = []
+        for start in range(0, len(self.contents), self.block_size):
+            similarities = cosine_similarity(
+                item_vectors[start:start + self.block_size], item_vectors, dense_output=False
+            ).tocsr()
+            for row in range(similarities.shape[0]):
+                left, right = similarities.indptr[row:row + 2]
+                values = similarities.data[left:right]
+                indices = similarities.indices[left:right]
+                values[indices == start + row] = 0.0
+                positive = np.flatnonzero(values > 0)
+                keep = positive[np.argsort(-values[positive], kind="stable")[:self.neighbors]]
+                drop = np.ones(len(values), dtype=bool)
+                drop[keep] = False
+                values[drop] = 0.0
+            similarities.eliminate_zeros()
+            blocks.append(similarities)
+        self.item_similarity = sparse.vstack(blocks, format="csr")
 
     def score_all(self, user_id: str) -> np.ndarray:
         if user_id not in self.user_index:
             return np.zeros(len(self.contents))
-        vector = self.user_item[self.user_index[user_id]]
-        positive = np.maximum(vector, 0.0)
-        if positive.sum() == 0:
-            return np.zeros(len(self.contents))
-        active = (positive > 0).astype(float)
-        denominator = np.einsum("ij,j->i", np.abs(self.item_similarity), active) + 1e-9
-        numerator = np.einsum("ij,j->i", self.item_similarity, positive)
-        return numerator / denominator
+        vector = self.user_item.getrow(self.user_index[user_id]).T
+        active = vector.copy()
+        active.data = np.ones_like(active.data)
+        numerator = (self.item_similarity @ vector).toarray().ravel()
+        denominator = (abs(self.item_similarity) @ active).toarray().ravel()
+        return np.divide(numerator, denominator, out=np.zeros_like(numerator), where=denominator > 0)
 
 
 class HybridRecommender(BaseRecommender):
@@ -244,8 +279,12 @@ class HybridRecommender(BaseRecommender):
         content_weight: float = 0.40,
         collaborative_weight: float = 0.35,
         exploration_weight: float = 0.05,
+        candidates_per_channel: int = 20,
     ) -> None:
         super().__init__()
+        if candidates_per_channel <= 0:
+            raise ValueError("candidates_per_channel must be positive")
+        self.candidates_per_channel = candidates_per_channel
         self.weights = (
             popularity_weight,
             content_weight,
@@ -261,14 +300,19 @@ class HybridRecommender(BaseRecommender):
         )
         newest = self.contents["published_at"].rank(pct=True).to_numpy()
         self.exploration = newest * (1.0 - minmax(self.popularity.scores))
+        self._component_cache: dict[str, dict[str, np.ndarray]] = {}
 
     def score_components(self, user_id: str) -> dict[str, np.ndarray]:
-        return {
+        if user_id in self._component_cache:
+            return self._component_cache[user_id]
+        components = {
             "popularity": minmax(self.popularity.score_all(user_id)),
             "content": minmax(self.content.score_all(user_id)),
             "collaborative": minmax(self.collaborative.score_all(user_id)),
             "exploration": minmax(self.exploration),
         }
+        self._component_cache[user_id] = components
+        return components
 
     def score_all(self, user_id: str) -> np.ndarray:
         components = self.score_components(user_id)
@@ -279,6 +323,21 @@ class HybridRecommender(BaseRecommender):
                 ("popularity", "content", "collaborative", "exploration"),
             )
         )
+    def candidate_ids(self, user_id: str, exclude_seen: bool = True) -> list[str]:
+        seen = self.seen_by_user.get(user_id, set()) if exclude_seen else set()
+        selected: set[int] = set()
+        for scores in self.score_components(user_id).values():
+            eligible = [index for index in np.argsort(-scores, kind="stable")
+                        if self.content_ids[index] not in seen]
+            selected.update(eligible[:self.candidates_per_channel])
+        return [self.content_ids[index] for index in sorted(selected)]
+
+    def recommend(self, user_id: str, k: int = 10, exclude_seen: bool = True) -> pd.DataFrame:
+        validate_k(k)
+        candidates = set(self.candidate_ids(user_id, exclude_seen=exclude_seen))
+        scores = self.score_all(user_id).copy()
+        scores[[value not in candidates for value in self.content_ids]] = -np.inf
+        return top_results(self.contents, scores, k, self.name)
 
 
 class RankingRecommender(BaseRecommender):
@@ -296,39 +355,68 @@ class RankingRecommender(BaseRecommender):
     )
 
     def _fit(self) -> None:
-        self.hybrid = HybridRecommender().fit(self.contents, self.users, self.interactions)
-        aggregated = aggregate_interactions(self.interactions)
-        latest = self.contents["published_at"].max()
-        self.freshness = np.exp(
-            -np.log(2)
-            * ((latest - self.contents["published_at"]).dt.total_seconds() / 86400.0)
-            / 30.0
-        ).to_numpy()
-        activity = aggregated.groupby("user_id")["event_count"].sum()
-        self.activity = activity.to_dict()
+        # A separate historical snapshot supplies features for a later label window.
+        times = self.interactions["timestamp"].sort_values().drop_duplicates().reset_index(drop=True)
+        self.model = None
+        self.constant_probability: float | None = None
+        self.training_mode = "hybrid_fallback"
+        self.training_feature_rows = 0
+        if len(times) < 2:
+            reference = times.iloc[-1] if len(times) else self.contents["published_at"].max()
+            self.feature_cutoff = reference
+            self.label_window_start = pd.NaT
+            hybrid = HybridRecommender().fit(self.contents, self.users, self.interactions)
+            self._set_snapshot(hybrid, self.interactions, reference)
+            return
+        boundary = times.iloc[min(max(int(len(times) * 0.7) - 1, 0), len(times) - 2)]
+        history = self.interactions.loc[self.interactions["timestamp"] <= boundary]
+        label_events = self.interactions.loc[self.interactions["timestamp"] > boundary]
+        historical_contents = self.contents.loc[self.contents["published_at"] <= boundary]
+        feature_hybrid = HybridRecommender().fit(historical_contents, self.users, history)
+        labels = aggregate_interactions(label_events)
         rows: list[np.ndarray] = []
-        labels: list[int] = []
-        for record in aggregated.itertuples():
-            index = self.content_index[record.content_id]
-            rows.append(self._features(record.user_id)[index])
-            labels.append(int(record.preference > 0))
-        x = np.vstack(rows)
-        y = np.asarray(labels)
-        self.model = Pipeline(
-            [
+        targets: list[int] = []
+        eligible_ids = set(historical_contents["content_id"])
+        # Features and candidate membership are computed once per user for the frozen snapshot.
+        self._set_snapshot(feature_hybrid, history, boundary)
+        self.training_feature_rows = 0
+        for user_id, group in labels.groupby("user_id"):
+            candidates = set(feature_hybrid.candidate_ids(user_id))
+            group = group.loc[group["content_id"].isin(candidates & eligible_ids)]
+            if group.empty:
+                continue
+            features = self._features(user_id)
+            for record in group.itertuples():
+                rows.append(features[self.content_index[record.content_id]])
+                targets.append(int(record.preference > 0))
+        self.training_feature_rows = len(rows)
+        self.feature_cutoff = boundary
+        self.label_window_start = label_events["timestamp"].min()
+        if rows and len(set(targets)) == 2:
+            self.model = Pipeline([
                 ("scale", StandardScaler()),
-                (
-                    "logistic",
-                    LogisticRegression(
-                        class_weight="balanced",
-                        max_iter=1000,
-                        random_state=RANDOM_SEED,
-                        solver="liblinear",
-                    ),
-                ),
-            ]
-        )
-        self.model.fit(x, y)
+                ("logistic", LogisticRegression(class_weight="balanced", max_iter=1000,
+                    random_state=RANDOM_SEED, solver="liblinear")),
+            ])
+            self.model.fit(np.vstack(rows), np.asarray(targets))
+            self.training_mode = "logistic_regression"
+        elif rows:
+            self.constant_probability = float(np.mean(targets))
+            self.training_mode = "constant_label"
+        # Serving uses all history available at the outer training cutoff.
+        serving_hybrid = HybridRecommender().fit(self.contents, self.users, self.interactions)
+        self._set_snapshot(serving_hybrid, self.interactions, self.interactions["timestamp"].max())
+
+    def _set_snapshot(self, hybrid: HybridRecommender, history: pd.DataFrame, reference: pd.Timestamp) -> None:
+        self.hybrid = hybrid
+        self._feature_cache: dict[str, np.ndarray] = {}
+        self.freshness = np.exp(-np.log(2) * np.maximum(
+            (reference - self.contents["published_at"]).dt.total_seconds().to_numpy() / 86400, 0
+        ) / 30.0)
+        self.activity = history.groupby("user_id").size().to_dict()
+
+    def candidate_ids(self, user_id: str, exclude_seen: bool = True) -> list[str]:
+        return self.hybrid.candidate_ids(user_id, exclude_seen=exclude_seen)
 
     def _overlap_features(self, user_id: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         matched = self.users[self.users["user_id"] == user_id]
@@ -351,10 +439,15 @@ class RankingRecommender(BaseRecommender):
         return topic_overlap, coin_overlap, difficulty
 
     def _features(self, user_id: str) -> np.ndarray:
-        components = self.hybrid.score_components(user_id)
+        if user_id in self._feature_cache:
+            return self._feature_cache[user_id]
+        raw = self.hybrid.score_components(user_id)
+        components = {name: np.array([values[self.hybrid.content_index[value]]
+            if value in self.hybrid.content_index else 0.0 for value in self.content_ids])
+            for name, values in raw.items()}
         topic_overlap, coin_overlap, difficulty = self._overlap_features(user_id)
         activity = np.full(len(self.contents), np.log1p(self.activity.get(user_id, 0)))
-        return np.column_stack(
+        features = np.column_stack(
             [
                 components["content"],
                 components["popularity"],
@@ -368,18 +461,35 @@ class RankingRecommender(BaseRecommender):
             ]
         )
 
-    def score_all(self, user_id: str) -> np.ndarray:
-        features = self.model.named_steps["scale"].transform(self._features(user_id))
-        logistic = self.model.named_steps["logistic"]
-        logits = np.einsum("ij,j->i", features, logistic.coef_[0]) + logistic.intercept_[0]
-        logits = np.clip(logits, -40.0, 40.0)
-        probabilities = 1.0 / (1.0 + np.exp(-logits))
-        # The learned score refines rather than replaces candidate relevance.
-        # This mirrors a two-stage system and protects against a weak ranker.
-        hybrid_scores = minmax(self.hybrid.score_all(user_id))
-        return 0.65 * probabilities + 0.35 * hybrid_scores
+        self._feature_cache[user_id] = features
+        return features
+
+    def score_all(self, user_id: str, exclude_seen: bool = True) -> np.ndarray:
+        candidates = self.candidate_ids(user_id, exclude_seen=exclude_seen)
+        indices = np.array([self.content_index[value] for value in candidates], dtype=int)
+        scores = np.full(len(self.contents), -np.inf)
+        if not len(indices):
+            return scores
+        hybrid_scores = minmax(self.hybrid.score_all(user_id))[indices]
+        if self.model is not None:
+            features = self.model.named_steps["scale"].transform(self._features(user_id)[indices])
+            logistic = self.model.named_steps["logistic"]
+            logits = np.einsum("ij,j->i", features, logistic.coef_[0]) + logistic.intercept_[0]
+            probabilities = 1.0 / (1.0 + np.exp(-np.clip(logits, -40.0, 40.0)))
+            scores[indices] = 0.65 * probabilities + 0.35 * hybrid_scores
+        elif self.constant_probability is not None:
+            scores[indices] = 0.65 * self.constant_probability + 0.35 * hybrid_scores
+        else:
+            scores[indices] = hybrid_scores
+        return scores
+
+    def recommend(self, user_id: str, k: int = 10, exclude_seen: bool = True) -> pd.DataFrame:
+        validate_k(k)
+        return top_results(self.contents, self.score_all(user_id, exclude_seen), k, self.name)
 
     def feature_importance(self) -> pd.DataFrame:
+        if self.model is None:
+            return pd.DataFrame(columns=["feature", "coefficient"])
         coefficients = self.model.named_steps["logistic"].coef_[0]
         return pd.DataFrame(
             {"feature": self.feature_names, "coefficient": coefficients}
@@ -397,6 +507,10 @@ class DiversityRecommender(BaseRecommender):
         max_per_primary_topic: int = 3,
     ) -> None:
         super().__init__()
+        if candidate_multiplier <= 0 or max_per_source <= 0 or max_per_primary_topic <= 0:
+            raise ValueError("Candidate multiplier and diversity caps must be positive")
+        if not 0 <= relevance_weight <= 1:
+            raise ValueError("relevance_weight must be between 0 and 1")
         self.candidate_multiplier = candidate_multiplier
         self.relevance_weight = relevance_weight
         self.max_per_source = max_per_source
@@ -408,8 +522,12 @@ class DiversityRecommender(BaseRecommender):
     def score_all(self, user_id: str) -> np.ndarray:
         return self.ranker.score_all(user_id)
 
+    def candidate_ids(self, user_id: str, exclude_seen: bool = True) -> list[str]:
+        return self.ranker.candidate_ids(user_id, exclude_seen=exclude_seen)
+
     def recommend(self, user_id: str, k: int = 10, exclude_seen: bool = True) -> pd.DataFrame:
-        scores = self.score_all(user_id).copy()
+        validate_k(k)
+        scores = self.ranker.score_all(user_id, exclude_seen=exclude_seen).copy()
         if exclude_seen:
             for content_id in self.seen_by_user.get(user_id, set()):
                 if content_id in self.content_index:
@@ -445,7 +563,7 @@ class DiversityRecommender(BaseRecommender):
                     best_value = value
                     best_index = index
             if best_index is None:
-                best_index = candidates[0]
+                break
             candidates.remove(best_index)
             selected.append(best_index)
             selected_row = self.contents.iloc[best_index]

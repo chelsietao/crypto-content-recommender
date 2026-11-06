@@ -1,50 +1,25 @@
-# Model Card
+# Recommendation Model Specification
 
-## System name
+The project compares six recommendation strategies on a fixed synthetic dataset, using Python, scikit-learn, SciPy, pandas, and DuckDB.
 
-Personalized & Diverse Crypto Content Recommender
+## Data and labels
 
-## Intended use
-
-Educational portfolio prototype for studying content recommendation, cold start, ranking,
-diversity, product metrics, and offline experimentation. It is intended for local demonstration
-and technical discussion.
-
-## Out-of-scope use
-
-- Cryptocurrency price or return prediction
-- Trading, portfolio, or asset-allocation advice
-- Financial suitability decisions
-- Production content moderation or misinformation detection
-- Claims about Binance users, creators, products, or private systems
-
-## Data
-
-The default run deterministically generates 240 synthetic content records, 80 synthetic users, and
-their impression/click/like/save/hide events. Preference propensities are controlled by persona,
-topic, asset, difficulty, and content quality. Small raw CSV fixtures are included only for teaching.
-
-## Models
-
-Six strategies are compared: time-decayed popularity, TF-IDF content-based retrieval, item-item
-collaborative filtering, hybrid recall, logistic regression ranking, and diversity reranking.
+The dataset contains 240 content records and 80 users, with 8,564 impression, click, like, save, and hide events.
+A user-content pair receives its strongest positive event weight when no hide is present, and receives the negative hide weight when a hide is present.
 
 ## Evaluation
 
-Each user's latest positive item is held out. All events for that pair are removed from training.
-Metrics include Hit/Recall@10, NDCG@10, catalog coverage, source/topic coverage, and intra-list
-diversity.
+A global timestamp separates training from evaluation, and the content catalog contains only items published by that timestamp.
+Each evaluated user contributes the first later positive item absent from their training history, with hidden pairs excluded from positive targets.
+The ranker uses an earlier feature snapshot and a later label window within the training period, with candidate membership determined by the earlier snapshot.
 
-## Known limitations
+## Model flow
 
-- Synthetic preferences make results useful for implementation testing, not impact estimation.
-- Leave-one-out evaluation has one relevant item per user and therefore Hit Rate equals Recall.
-- The learned ranker uses heuristic labels and lacks production impression-position features.
-- TF-IDF does not fully represent semantic meaning, multilingual content, or rapidly shifting events.
-- Quality is a synthetic proxy; financial safety and factuality need independent systems and review.
+Popularity, TF-IDF interests, sparse item neighbors, and exploration each retrieve up to 20 unseen items, with their union forming the hybrid candidate pool.
+Logistic regression scores that pool, and diversity reranking applies source and primary-topic caps.
+The item-neighbor matrix retains up to 40 positive similarities per item, with similarity computation performed in blocks.
 
-## Responsible deployment requirements
+## Recorded outputs
 
-A real deployment would require consented event data, privacy and compliance review, bot and abuse
-filtering, policy-aware candidate eligibility, source-quality controls, online A/B testing, latency
-and drift monitoring, rollback procedures, and subgroup audits across language and creator cohorts.
+The pipeline writes recommendation metrics and per-user details, including candidate recall, coverage, diversity, model coefficients, and all missed targets.
+The Streamlit app displays synthetic-user feeds and evaluation dashboards, with feedback retained in browser session state.

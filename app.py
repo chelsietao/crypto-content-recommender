@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pandas as pd
 import streamlit as st
 
-from src.config import ARTIFACTS_DIR, TOP_K
+from src.config import TOP_K
 from src.data_pipeline import build_dataset
-from src.evaluation import evaluate_all, leave_latest_positive_out
+from src.evaluation import evaluate_all, chronological_holdout
 from src.recommenders import RankingRecommender, build_all_models, split_tags
 
 
@@ -18,9 +16,9 @@ st.set_page_config(page_title="Crypto Content Recommender", page_icon="🧭", la
 
 @st.cache_resource(show_spinner="Training six recommendation strategies…")
 def load_system():
-    bundle = build_dataset(save=True)
-    split = leave_latest_positive_out(bundle.interactions)
-    models = build_all_models(bundle.contents, bundle.users, split.train)
+    bundle = build_dataset(save=False)
+    split = chronological_holdout(bundle.interactions, bundle.contents)
+    models = build_all_models(split.contents, bundle.users, split.train)
     metrics, details = evaluate_all(models, split.test)
     return bundle, split, models, metrics, details
 
@@ -37,19 +35,22 @@ def explain(row: pd.Series, user: pd.Series) -> str:
         reasons.append("asset match: " + ", ".join(sorted(coins & preferred_coins)))
     if row["difficulty"] == user["experience_level"]:
         reasons.append(f"{row['difficulty']} difficulty")
-    return "Recommended because of " + ("; ".join(reasons) if reasons else "freshness and discovery value") + "."
+    return "Content matches: " + ("; ".join(reasons) if reasons else "content selected by the chosen strategy") + "."
 
 
 bundle, split, models, metrics, details = load_system()
 
-st.title("🧭 Personalized & Diverse Crypto Content Recommendation")
-st.caption(
-    "A synthetic, offline research prototype inspired by content-community recommendation problems. "
-    "Not affiliated with Binance and not financial advice."
-)
+st.title("Crypto Content Recommendation")
+st.caption("Six recommendation strategies · Synthetic content and interactions · Offline evaluation")
+summary = st.columns(4)
+summary[0].metric("Recommendation models", len(models))
+summary[1].metric("Available content", len(split.contents))
+summary[2].metric("Training events", f"{len(split.train):,}")
+summary[3].metric("Evaluated users", len(split.test))
+st.caption(f"Training and catalog cutoff: {split.cutoff.strftime('%Y-%m-%d %H:%M UTC')}")
 
 feed_tab, dashboard_tab, methodology_tab = st.tabs(
-    ["User Feed", "Data Scientist Dashboard", "Methodology & Limits"]
+    ["User Feed", "Data Scientist Dashboard", "How it works"]
 )
 
 with feed_tab:
@@ -65,7 +66,9 @@ with feed_tab:
             format_func=lambda value: value.replace("_", " ").title(),
         )
         count = st.slider("Items", min_value=5, max_value=15, value=10)
-        st.info("Like/Save/Hide buttons are UI demonstrations and remain in this browser session only.")
+        st.info("Like, Save, and Hide record feedback in this browser session.")
+        st.link_button("Source code", "https://github.com/chelsietao/crypto-content-recommender")
+        st.link_button("System review", "https://github.com/chelsietao/crypto-content-recommender/blob/main/reports/SYSTEM_REVIEW_AND_FIXES.md")
 
     user = bundle.users[bundle.users["user_id"] == user_id].iloc[0]
     recommendations = models[model_name].recommend(user_id, k=count)
@@ -84,20 +87,24 @@ with feed_tab:
                     f"topics: {row['topic_tags']} · score: {row['score']:.3f}"
                 )
                 st.success(explain(row, user), icon="💡")
-                a, b, c, d = st.columns([1, 1, 1, 4])
-                a.button("Like", key=f"like-{model_name}-{user_id}-{row['content_id']}")
-                b.button("Save", key=f"save-{model_name}-{user_id}-{row['content_id']}")
-                c.button("Hide", key=f"hide-{model_name}-{user_id}-{row['content_id']}")
-                d.link_button("Original link (synthetic)", row["url"])
+                a, b, c = st.columns(3)
+                for column, action in ((a, "Like"), (b, "Save"), (c, "Hide")):
+                    if column.button(action, key=f"{action}-{model_name}-{user_id}-{row['content_id']}"):
+                        feedback = st.session_state.setdefault("feedback", {})
+                        feedback[(user_id, row["content_id"])] = action
+                selected_action = st.session_state.get("feedback", {}).get((user_id, row["content_id"]))
+                if selected_action:
+                    st.caption(f"Session feedback: {selected_action}")
+                st.caption(f"Content ID: {row['content_id']}")
 
 with dashboard_tab:
     st.subheader("Offline model comparison")
     st.caption(
-        "Latest positive item per user is held out. Metrics are synthetic and must not be read as online lift."
+        "Training and content availability share one cutoff. Each user contributes one later unseen positive target."
     )
     display_metrics = metrics.copy()
     display_metrics["model"] = display_metrics["model"].str.replace("_", " ").str.title()
-    st.dataframe(display_metrics.round(4), use_container_width=True, hide_index=True)
+    st.dataframe(display_metrics.round(4), width="stretch", hide_index=True)
 
     c1, c2 = st.columns(2)
     with c1:
@@ -114,13 +121,16 @@ with dashboard_tab:
         .mean()
         .rename(columns={"ndcg_at_k": f"ndcg@{TOP_K}", "hit_at_k": f"hit_rate@{TOP_K}"})
     )
-    st.dataframe(by_persona.round(4), use_container_width=True, hide_index=True)
+    st.dataframe(by_persona.round(4), width="stretch", hide_index=True)
 
     ranking = models[RankingRecommender.name]
     if isinstance(ranking, RankingRecommender):
         st.markdown("#### Logistic ranker coefficients")
-        coefficients = ranking.feature_importance().set_index("feature")
-        st.bar_chart(coefficients)
+        coefficients = ranking.feature_importance()
+        if not coefficients.empty:
+            st.bar_chart(coefficients.set_index("feature"))
+        else:
+            st.caption(f"Ranking mode: {ranking.training_mode}")
 
     st.markdown("#### Dataset overview")
     d1, d2, d3, d4 = st.columns(4)
@@ -141,13 +151,10 @@ with methodology_tab:
 6. **Diversity reranking:** relevance-aware reranking with source and topic exposure constraints.
 """
     )
-    st.subheader("Responsible interpretation")
-    st.warning(
-        "All users and interactions are synthetic. This prototype validates system design and "
-        "evaluation code; it does not demonstrate impact on real users, predict prices, or provide investment advice."
-    )
-    st.subheader("Production next steps")
-    st.markdown(
-        "Instrument eligible impressions, establish bot and policy filters, pre-register an A/B test, "
-        "monitor latency and negative feedback, and review fairness across languages, creators, and user cohorts."
+    st.subheader("Evaluation procedure")
+    st.write(
+        "The dataset contains synthetic users, content, and interactions. "
+        "Training history and the content catalog share one cutoff. "
+        "The ranker uses earlier history for features and a later window for labels. "
+        "Hide events retain a negative preference, and hybrid recall supplies a bounded candidate pool."
     )
