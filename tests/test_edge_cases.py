@@ -109,3 +109,29 @@ def test_evaluation_rejects_zero_k_and_empty_targets(system):
         evaluate_model(models['v1_popularity'], split.test, k=0)
     with pytest.raises(ValueError, match='test target'):
         evaluate_model(models['v1_popularity'], split.test.iloc[:0])
+
+
+def test_score_ties_have_a_content_id_order_despite_small_numeric_noise():
+    from src.recommenders import ordered_indices
+    ids = ['C003', 'C001', 'C002']
+    scores = np.array([0.5 + 1e-14, 0.5, 0.5 - 1e-14])
+    assert [ids[index] for index in ordered_indices(scores, ids)] == ['C001', 'C002', 'C003']
+
+
+def test_sparse_neighbor_ties_are_invariant_to_catalog_order(system):
+    from src.recommenders import CollaborativeFilteringRecommender
+    bundle, _, _ = system
+    catalog = bundle.contents.head(5).copy()
+    events = pd.DataFrame({
+        'event_id': [f'e{index}' for index in range(5)],
+        'user_id': ['U0001'] * 5,
+        'content_id': catalog.content_id.tolist(),
+        'event_type': ['click'] * 5,
+        'timestamp': pd.date_range('2026-04-01', periods=5, tz='UTC'),
+    })
+    first = CollaborativeFilteringRecommender(neighbors=2).fit(catalog, bundle.users, events)
+    second = CollaborativeFilteringRecommender(neighbors=2).fit(catalog.iloc[::-1], bundle.users, events)
+    for content_id in catalog.content_id:
+        left = first.item_similarity.getrow(first.content_index[content_id]).indices
+        right = second.item_similarity.getrow(second.content_index[content_id]).indices
+        assert {first.content_ids[index] for index in left} == {second.content_ids[index] for index in right}

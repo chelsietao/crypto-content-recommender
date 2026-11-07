@@ -19,9 +19,18 @@ jobs:
             requirements-dev.txt
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
+      - run: cp artifacts/model_metrics.csv /tmp/reference-model-metrics.csv
       - run: python -m src.run_pipeline
         env:
           MPLBACKEND: Agg
+      - name: Verify metric reproducibility
+        run: |
+          python - <<'PYCODE'
+          import pandas as pd
+          expected = pd.read_csv('/tmp/reference-model-metrics.csv')
+          actual = pd.read_csv('artifacts/model_metrics.csv')
+          pd.testing.assert_frame_equal(expected, actual, check_exact=False, atol=1e-10, rtol=0)
+          PYCODE
       - uses: actions/upload-artifact@v4
         with:
           name: recommendation-evaluation

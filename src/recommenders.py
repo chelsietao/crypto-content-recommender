@@ -57,10 +57,16 @@ def validate_k(k: int) -> None:
         raise ValueError("k must be a non-negative integer")
 
 
+def ordered_indices(scores: np.ndarray, content_ids: list[str]) -> np.ndarray:
+    """Order finite scores by 12-decimal score, then content ID for numeric ties."""
+    finite = np.flatnonzero(np.isfinite(scores))
+    keys = np.asarray(content_ids)[finite]
+    return finite[np.lexsort((keys, -np.round(scores[finite], 12)))]
+
+
 def top_results(contents: pd.DataFrame, scores: np.ndarray, k: int, model: str) -> pd.DataFrame:
     validate_k(k)
-    indices = np.flatnonzero(np.isfinite(scores))
-    indices = indices[np.argsort(-scores[indices], kind="stable")[:k]]
+    indices = ordered_indices(scores, contents["content_id"].tolist())[:k]
     result = contents.iloc[indices].copy()
     result["score"] = scores[indices]
     result["model"] = model
@@ -251,7 +257,9 @@ class CollaborativeFilteringRecommender(BaseRecommender):
                 indices = similarities.indices[left:right]
                 values[indices == start + row] = 0.0
                 positive = np.flatnonzero(values > 0)
-                keep = positive[np.argsort(-values[positive], kind="stable")[:self.neighbors]]
+                keys = np.asarray(self.content_ids)[indices[positive]]
+                order = np.lexsort((keys, -np.round(values[positive], 12)))
+                keep = positive[order[:self.neighbors]]
                 drop = np.ones(len(values), dtype=bool)
                 drop[keep] = False
                 values[drop] = 0.0
@@ -327,7 +335,7 @@ class HybridRecommender(BaseRecommender):
         seen = self.seen_by_user.get(user_id, set()) if exclude_seen else set()
         selected: set[int] = set()
         for scores in self.score_components(user_id).values():
-            eligible = [index for index in np.argsort(-scores, kind="stable")
+            eligible = [index for index in ordered_indices(scores, self.content_ids)
                         if self.content_ids[index] not in seen]
             selected.update(eligible[:self.candidates_per_channel])
         return [self.content_ids[index] for index in sorted(selected)]
@@ -461,6 +469,7 @@ class RankingRecommender(BaseRecommender):
             ]
         )
 
+        features = np.round(features, 12)
         self._feature_cache[user_id] = features
         return features
 
@@ -533,7 +542,7 @@ class DiversityRecommender(BaseRecommender):
                 if content_id in self.content_index:
                     scores[self.content_index[content_id]] = -np.inf
         candidate_count = min(k * self.candidate_multiplier, int(np.isfinite(scores).sum()))
-        candidates = list(np.argsort(-scores)[:candidate_count])
+        candidates = list(ordered_indices(scores, self.content_ids)[:candidate_count])
         selected: list[int] = []
         source_counts: Counter[str] = Counter()
         topic_counts: Counter[str] = Counter()
@@ -559,7 +568,7 @@ class DiversityRecommender(BaseRecommender):
                 else:
                     novelty = 1.0
                 value = self.relevance_weight * scores[index] + (1.0 - self.relevance_weight) * novelty
-                if value > best_value:
+                if value > best_value + 1e-12:
                     best_value = value
                     best_index = index
             if best_index is None:

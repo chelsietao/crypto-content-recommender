@@ -119,7 +119,7 @@ v4_hybrid,U0067,C0196,,0.0,0.0,0.0,1
 v4_hybrid,U0012,C0197,,0.0,0.0,0.0,1
 v4_hybrid,U0079,C0198,,0.0,0.0,0.0,1
 v4_hybrid,U0066,C0199,,0.0,0.0,0.0,1
-v5_logistic_ranker,U0056,C0193,1.0,1.0,1.0,1.0,1
+v5_logistic_ranker,U0056,C0193,2.0,1.0,1.0,0.6309297535714575,1
 v5_logistic_ranker,U0030,C0192,1.0,1.0,1.0,1.0,1
 v5_logistic_ranker,U0045,C0198,9.0,1.0,1.0,0.3010299956639812,1
 v5_logistic_ranker,U0004,C0194,,0.0,0.0,0.0,1
@@ -149,7 +149,7 @@ v5_logistic_ranker,U0067,C0196,,0.0,0.0,0.0,1
 v5_logistic_ranker,U0012,C0197,,0.0,0.0,0.0,1
 v5_logistic_ranker,U0079,C0198,,0.0,0.0,0.0,1
 v5_logistic_ranker,U0066,C0199,,0.0,0.0,0.0,1
-v6_diversity_reranking,U0056,C0193,1.0,1.0,1.0,1.0,1
+v6_diversity_reranking,U0056,C0193,2.0,1.0,1.0,0.6309297535714575,1
 v6_diversity_reranking,U0030,C0192,1.0,1.0,1.0,1.0,1
 v6_diversity_reranking,U0045,C0198,,0.0,0.0,0.0,1
 v6_diversity_reranking,U0004,C0194,5.0,1.0,1.0,0.38685280723454163,1
