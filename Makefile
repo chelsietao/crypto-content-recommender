@@ -32,3 +32,7 @@ service:
 
 service-benchmark:
 	python -m src.benchmark_service
+
+.PHONY: gpu-profile
+gpu-profile:
+	PYTORCH_ENABLE_MPS_FALLBACK=0 python -m src.profile_gpu
