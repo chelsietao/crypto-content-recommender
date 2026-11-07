@@ -24,6 +24,8 @@ def split_tags(value: object) -> set[str]:
 
 
 def aggregate_interactions(interactions: pd.DataFrame) -> pd.DataFrame:
+    if not interactions["event_type"].isin(EVENT_WEIGHTS).all():
+        raise ValueError("Unknown interaction event type")
     weighted = interactions.copy()
     weighted["event_weight"] = weighted["event_type"].map(EVENT_WEIGHTS).astype(float)
     return (

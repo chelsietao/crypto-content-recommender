@@ -1,0 +1,10 @@
+{
+  "evaluation_details.csv": "41baaa7a036db2d91d39dbcf15e15d54c6f6f30a37305f4eff4b85fe8eb9ef18",
+  "model_metrics.csv": "711af9ec0bcbdd26fd29485bdcff4c6595bdd302c958bf7bc8425d8e7ebf6fe1",
+  "neural_recommender.pt": "9d18da57a128f3370a9b141df0c63d9cfbeadb2118136c40afdb56f504e6516a",
+  "recommendations.csv": "ce6e64c4ba5d4c6ec21b3695c140b6a917cba16bb1ab7b152a0dc9ee45fdebc9",
+  "run_summary.json": "32e1465135e9d2817bde5e3e08794206777131badbafc83e14d72c6ce5c941c3",
+  "training_curves.png": "955a426aaa75680393ed1eaffd342d05eb04f54bc87f99af50ee9c2ee4c402f8",
+  "training_examples.csv": "7140ff4ddff04dedf3d366ce0210ad7cb4e2378e5cd0560875551c5d0d9e7355",
+  "training_history.csv": "213229358ee20befc36127b480065b3b6bbcfe455eff9cc6dde69d71bfb69b1c"
+}

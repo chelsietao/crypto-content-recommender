@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -52,16 +53,16 @@ def explain(row: pd.Series, user: pd.Series) -> str:
 bundle, split, models, metrics, details = load_system(system_signature())
 
 st.title("Crypto Content Recommendation")
-st.caption("Six recommendation strategies · Synthetic content and interactions · Offline evaluation")
+st.caption("Six baselines · PyTorch retrieval and ranking · Synthetic data")
 summary = st.columns(4)
-summary[0].metric("Recommendation models", len(models))
+summary[0].metric("Baseline models", len(models))
 summary[1].metric("Available content", len(split.contents))
 summary[2].metric("Training events", f"{len(split.train):,}")
 summary[3].metric("Evaluated users", len(split.test))
 st.caption(f"Training and catalog cutoff: {split.cutoff.strftime('%Y-%m-%d %H:%M UTC')}")
 
-feed_tab, dashboard_tab, methodology_tab = st.tabs(
-    ["User Feed", "Data Scientist Dashboard", "How it works"]
+feed_tab, dashboard_tab, neural_tab, methodology_tab = st.tabs(
+    ["User Feed", "Data Scientist Dashboard", "PyTorch Models", "How it works"]
 )
 
 with feed_tab:
@@ -169,3 +170,28 @@ with methodology_tab:
         "The ranker uses earlier history for features and a later window for labels. "
         "Hide events retain a negative preference, and hybrid recall supplies a bounded candidate pool."
     )
+
+
+with neural_tab:
+    directory = Path(__file__).parent / "artifacts" / "neural"
+    if (directory / "run_summary.json").exists():
+        neural_summary = json.loads((directory / "run_summary.json").read_text())
+        neural_metrics = pd.read_csv(directory / "model_metrics.csv")
+        neural_recommendations = pd.read_csv(directory / "recommendations.csv")
+        st.subheader("PyTorch two-tower retrieval and neural ranking")
+        st.caption("Saved CPU training run · Time-ordered training and validation · 50 recall candidates")
+        first, second, third = st.columns(3)
+        first.metric("Two-tower selected epoch", neural_summary["training"]["two_tower"]["selected_epoch"])
+        second.metric("Ranker selected epoch", neural_summary["training"]["neural_ranker"]["selected_epoch"])
+        third.metric("Checkpoint reload users", neural_summary["checkpoint_reload_users"])
+        st.image(str(directory / "training_curves.png"), caption="Training and validation losses, with selected checkpoints marked")
+        st.markdown("#### Eight-model offline evaluation")
+        st.dataframe(neural_metrics.round(4), width="stretch", hide_index=True)
+        chosen_user = st.selectbox("Neural model user", neural_recommendations.user_id.drop_duplicates())
+        chosen_model = st.selectbox("Neural model", neural_recommendations.model.drop_duplicates())
+        selected = neural_recommendations.loc[(neural_recommendations.user_id == chosen_user)
+                                             & (neural_recommendations.model == chosen_model)]
+        st.dataframe(selected[["rank", "content_id", "title", "topic_tags", "score"]].round(4),
+                     width="stretch", hide_index=True)
+        st.link_button("PyTorch training guide", "https://github.com/chelsietao/crypto-content-recommender/blob/main/README_PYTORCH.md")
+        st.link_button("Download checkpoint", "https://github.com/chelsietao/crypto-content-recommender/raw/refs/heads/main/artifacts/neural/neural_recommender.pt")

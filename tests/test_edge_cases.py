@@ -135,3 +135,25 @@ def test_sparse_neighbor_ties_are_invariant_to_catalog_order(system):
         left = first.item_similarity.getrow(first.content_index[content_id]).indices
         right = second.item_similarity.getrow(second.content_index[content_id]).indices
         assert {first.content_ids[index] for index in left} == {second.content_ids[index] for index in right}
+
+
+def test_evaluation_rejects_unknown_seen_and_duplicate_targets(system):
+    _, split, models = system
+    model = models['v1_popularity']
+    unknown = split.test.iloc[:1].copy()
+    unknown.loc[:, 'content_id'] = 'unknown-item'
+    with pytest.raises(ValueError, match='absent'):
+        evaluate_model(model, unknown)
+    with pytest.raises(ValueError, match='one target'):
+        evaluate_model(model, pd.concat([split.test, split.test]))
+    seen = split.test.iloc[:1].copy()
+    seen.loc[:, 'content_id'] = next(iter(model.seen_by_user[seen.user_id.iloc[0]]))
+    with pytest.raises(ValueError, match='unseen'):
+        evaluate_model(model, seen)
+
+
+def test_unknown_event_cannot_be_converted_to_a_silent_label():
+    from src.recommenders import aggregate_interactions
+    events = pd.DataFrame({'event_type': ['unknown']})
+    with pytest.raises(ValueError, match='Unknown'):
+        aggregate_interactions(events)

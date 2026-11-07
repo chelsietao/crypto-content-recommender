@@ -1,8 +1,10 @@
 # Crypto Content Recommendation System
 
-這個專案以加密貨幣內容推薦為主題，完成合成資料產生、六種推薦方法、候選召回、排序、多樣性重排、離線評估與 Streamlit 展示介面。
+這個專案以加密貨幣內容推薦為主題，完成合成資料產生、六種推薦基線、PyTorch 雙塔召回與神經排序器、離線評估及 Streamlit 展示介面。
 
 公開展示已部署至 Streamlit Community Cloud，可開啟 [互動展示](https://rkatmcugsybuh4d5cejg6s.streamlit.app/) 操作六種推薦方法與評估儀表板。
+
+PyTorch 訓練、checkpoint 與推薦指標的實作說明，請見 [PyTorch 雙塔召回與神經排序器](README_PYTORCH.md)。
 
 ## 資料與流程
 
@@ -68,7 +70,7 @@ streamlit run app.py
 
 ## 驗證
 
-本次修正通過 27 項自動化測試，涵蓋時間邊界、隱藏標籤、候選限制、排序特徵、稀疏鄰居與重排上限，並完成資料流程及展示介面啟動與工作階段回饋檢查。
+基礎流程通過 29 項測試，安裝 `requirements-neural.txt` 後通過 38 項測試，涵蓋時間邊界、隱藏標籤、候選限制、排序特徵、稀疏鄰居與重排上限，並完成資料流程及展示介面啟動與工作階段回饋檢查。
 
 ## 專案結構
 

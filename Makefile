@@ -18,3 +18,10 @@ app:
 clean:
 	find src tests -type d -name __pycache__ -prune -exec rm -rf {} +
 	rm -rf .pytest_cache
+
+.PHONY: neural neural-check
+neural:
+	python -m src.run_neural
+
+neural-check:
+	python -m src.run_neural --verify-only

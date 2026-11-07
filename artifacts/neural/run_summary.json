@@ -1,0 +1,87 @@
+{
+  "config": {
+    "seed": 42,
+    "epochs": 30,
+    "batch_size": 128,
+    "learning_rate": 0.003,
+    "weight_decay": 0.001,
+    "hidden_dim": 64,
+    "embedding_dim": 32,
+    "text_dim": 64,
+    "candidate_count": 50,
+    "temperature": 0.2,
+    "outcome_minutes": 15
+  },
+  "device": "cpu",
+  "python": "3.9.6",
+  "torch": "2.6.0",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "source_sha256": "60209204ef4fc6cf32634aed6b72a39c8437db4677cdda781db60f1e5ffd447d",
+  "training_cutoff": "2026-03-08T04:48:00+00:00",
+  "training_events": 6852,
+  "eligible_contents": 199,
+  "evaluated_users": 30,
+  "training": {
+    "two_tower": {
+      "selected_epoch": 4,
+      "validation_loss": 0.9458718299865723,
+      "parameters_changed": true,
+      "training_examples": 2345,
+      "validation_examples": 689
+    },
+    "neural_ranker": {
+      "selected_epoch": 18,
+      "validation_loss": 0.8105823993682861,
+      "parameters_changed": true,
+      "training_examples": 533,
+      "validation_examples": 394
+    },
+    "window_boundaries": [
+      "2026-02-03T19:47:00+00:00",
+      "2026-02-13T05:58:00+00:00",
+      "2026-02-27T04:55:00+00:00",
+      "2026-03-08T04:48:00+00:00"
+    ],
+    "window_examples": [
+      2345,
+      689,
+      911,
+      681
+    ],
+    "ranker_candidate_examples": 927
+  },
+  "window_label_counts": [
+    {
+      "window": 0,
+      "examples": 2345,
+      "positive": 699,
+      "negative": 1646
+    },
+    {
+      "window": 1,
+      "examples": 689,
+      "positive": 218,
+      "negative": 471
+    },
+    {
+      "window": 2,
+      "examples": 911,
+      "positive": 301,
+      "negative": 610
+    },
+    {
+      "window": 3,
+      "examples": 681,
+      "positive": 218,
+      "negative": 463
+    }
+  ],
+  "checkpoint_reload_users": 81,
+  "checkpoint_reload_max_score_error": 0.0,
+  "checkpoint_sha256": "9d18da57a128f3370a9b141df0c63d9cfbeadb2118136c40afdb56f504e6516a",
+  "feature_dimensions": {
+    "user": 70,
+    "item": 94,
+    "embedding": 32
+  }
+}

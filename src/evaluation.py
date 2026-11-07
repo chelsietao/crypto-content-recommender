@@ -79,6 +79,12 @@ def evaluate_model(
         raise ValueError("Evaluation k must be positive")
     if test.empty:
         raise ValueError("Evaluation requires at least one eligible test target")
+    if not test["user_id"].is_unique:
+        raise ValueError("Evaluation requires one target per user")
+    if not test["content_id"].isin(model.content_ids).all():
+        raise ValueError("Evaluation target is absent from the model catalog")
+    if any(row.content_id in model.seen_by_user.get(row.user_id, set()) for row in test.itertuples()):
+        raise ValueError("Evaluation targets must be unseen in training")
     rows: list[dict[str, object]] = []
     all_recommended: set[str] = set()
     diversities: list[float] = []

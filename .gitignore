@@ -50,3 +50,16 @@ data/processed/*
 !data/processed/contents.csv
 !data/processed/users.csv
 !data/processed/interactions.csv
+
+# Curated neural experiment artifacts
+!artifacts/neural/
+artifacts/neural/*
+!artifacts/neural/neural_recommender.pt
+!artifacts/neural/training_curves.png
+!artifacts/neural/training_history.csv
+!artifacts/neural/model_metrics.csv
+!artifacts/neural/evaluation_details.csv
+!artifacts/neural/recommendations.csv
+!artifacts/neural/training_examples.csv
+!artifacts/neural/run_summary.json
+!artifacts/neural/manifest.json
