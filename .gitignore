@@ -63,3 +63,6 @@ artifacts/neural/*
 !artifacts/neural/training_examples.csv
 !artifacts/neural/run_summary.json
 !artifacts/neural/manifest.json
+
+# Local inference benchmark server log
+reports/service_benchmark/server.log

@@ -25,3 +25,10 @@ neural:
 
 neural-check:
 	python -m src.run_neural --verify-only
+
+.PHONY: service service-benchmark
+service:
+	python -m src.serve_neural
+
+service-benchmark:
+	python -m src.benchmark_service
