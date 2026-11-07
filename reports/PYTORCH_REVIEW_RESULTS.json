@@ -1,0 +1,24 @@
+{
+  "reviewed_commit": "a6193da00ab96236117e1cfef5a302b1712ed985",
+  "tests_passed": 50,
+  "regression_cases_added": 12,
+  "exact_metric_equivalence": true,
+  "exact_exported_recommendation_equivalence": true,
+  "verified_models": 2,
+  "verified_users": 80,
+  "required_artifact_hashes": 8,
+  "loaded_tower_trainable_parameters": 0,
+  "inference_call_audit": {
+    "v7_pytorch_two_tower": {
+      "users": 80,
+      "retrieval_score_calls": 80,
+      "history_feature_rebuilds": 0
+    },
+    "v8_pytorch_neural_ranker": {
+      "users": 80,
+      "retrieval_score_calls": 80,
+      "history_feature_rebuilds": 0
+    }
+  },
+  "retrained_epochs_per_stage": 30
+}

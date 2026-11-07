@@ -4,7 +4,7 @@
 
 公開展示已部署至 Streamlit Community Cloud，可開啟 [互動展示](https://rkatmcugsybuh4d5cejg6s.streamlit.app/) 操作六種推薦方法與評估儀表板。
 
-PyTorch 訓練、checkpoint 與推薦指標的實作說明，請見 [PyTorch 雙塔召回與神經排序器](README_PYTORCH.md)。
+PyTorch 訓練、checkpoint 與推薦指標的實作說明，請見 [PyTorch 雙塔召回與神經排序器](README_PYTORCH.md)，本次推論與驗證修正請見 [雙塔召回優化紀錄](README_PYTORCH_REVIEW.md)。
 
 ## 資料與流程
 
@@ -70,7 +70,7 @@ streamlit run app.py
 
 ## 驗證
 
-基礎流程通過 29 項測試，安裝 `requirements-neural.txt` 後通過 38 項測試，涵蓋時間邊界、隱藏標籤、候選限制、排序特徵、稀疏鄰居與重排上限，並完成資料流程及展示介面啟動與工作階段回饋檢查。
+基礎流程通過 29 項測試，安裝 `requirements-neural.txt` 後通過 50 項測試，涵蓋時間邊界、隱藏標籤、候選限制、排序特徵、稀疏鄰居與重排上限，並完成資料流程及展示介面啟動與工作階段回饋檢查。
 
 ## 專案結構
 

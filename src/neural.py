@@ -340,18 +340,23 @@ class NeuralSystem:
         return self
 
     def user_vector(self, user_id):
-        return self.serving_users.get(user_id, self.encoder.user_features(user_id, UserHistory(self.encoder.preference_dim)))
+        if user_id in self.serving_users:
+            return self.serving_users[user_id]
+        return self.encoder.user_features(user_id, UserHistory(self.encoder.preference_dim))
 
     def retrieval_scores(self, user_id):
         with torch.no_grad():
             user = self.tower.users(torch.from_numpy(self.user_vector(user_id))[None])
             return (self.item_embeddings * user).sum(1).numpy().copy()
 
-    def candidate_indices(self, user_id, exclude_seen=True):
-        scores = self.retrieval_scores(user_id)
+    def select_candidates(self, user_id, scores, exclude_seen=True):
+        scores = scores.copy()
         if exclude_seen:
             scores[list(self.seen.get(user_id, set()))] = -np.inf
         return ordered_indices(scores, self.encoder.content_ids)[:self.config.candidate_count]
+
+    def candidate_indices(self, user_id, exclude_seen=True):
+        return self.select_candidates(user_id, self.retrieval_scores(user_id), exclude_seen)
 
     def rank_scores(self, user_id, exclude_seen=True):
         candidates = self.candidate_indices(user_id, exclude_seen)
@@ -392,6 +397,7 @@ class NeuralSystem:
         system.tower = TwoTower(system.encoder.user_dim, system.encoder.item_features.shape[1], config)
         system.tower.load_state_dict(payload["tower_state"])
         system.tower.eval()
+        system.tower.requires_grad_(False)
         system.ranker = NeuralRanker(config.embedding_dim, config.hidden_dim)
         system.ranker.load_state_dict(payload["ranker_state"])
         system.ranker.eval()
@@ -419,9 +425,11 @@ class TwoTowerRecommender(BaseRecommender):
 
     def recommend(self, user_id, k=10, exclude_seen=True):
         validate_k(k)
-        scores = self.score_all(user_id)
-        candidates = set(self.candidate_ids(user_id, exclude_seen))
-        scores[[value not in candidates for value in self.content_ids]] = -np.inf
+        scores = self.system.retrieval_scores(user_id)
+        candidates = self.system.select_candidates(user_id, scores, exclude_seen)
+        masked = np.full_like(scores, -np.inf)
+        masked[candidates] = scores[candidates]
+        scores = masked
         return top_results(self.contents, scores, k, self.name)
 
 

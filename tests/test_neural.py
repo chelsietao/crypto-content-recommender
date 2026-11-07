@@ -127,3 +127,88 @@ def test_neural_training_rejects_future_catalog_contents(trained):
     bundle, split, _ = trained
     with pytest.raises(ValueError, match='published after'):
         NeuralSystem(bundle.contents, bundle.users, split.train, NeuralConfig())
+
+
+def test_recommendation_computes_retrieval_once_and_reuses_user_features(trained):
+    from unittest.mock import patch
+    _, _, system = trained
+    for model in system.recommenders().values():
+        with patch.object(system, 'retrieval_scores', wraps=system.retrieval_scores) as scores:
+            with patch.object(system.encoder, 'user_features', wraps=system.encoder.user_features) as features:
+                result = model.recommend('U0001')
+        assert not result.empty
+        assert scores.call_count == 1
+        assert features.call_count == 0
+
+
+def test_candidate_selection_does_not_mutate_scores_and_handles_exhaustion(trained):
+    from unittest.mock import patch
+    _, _, system = trained
+    scores = system.retrieval_scores('U0001')
+    original = scores.copy()
+    system.select_candidates('U0001', scores)
+    np.testing.assert_array_equal(scores, original)
+    with patch.dict(system.seen, {'U0001': set(range(len(system.contents)))}):
+        assert not len(system.candidate_indices('U0001'))
+        for model in system.recommenders().values():
+            assert model.recommend('U0001').empty
+            assert len(model.recommend('U0001', exclude_seen=False)) == 10
+
+
+def test_loaded_checkpoint_preserves_frozen_tower(trained, tmp_path):
+    _, _, system = trained
+    checkpoint = tmp_path / 'frozen.pt'
+    system.save(checkpoint)
+    restored = NeuralSystem.load(checkpoint)
+    assert not restored.tower.training
+    assert not restored.ranker.training
+    assert all(not parameter.requires_grad for parameter in restored.tower.parameters())
+
+
+@pytest.mark.parametrize('mutation', ['empty', 'missing', 'unexpected'])
+def test_export_verification_rejects_incomplete_manifests(tmp_path, mutation):
+    import json
+    from src.run_neural import REQUIRED_EXPORTS, verify_export
+    manifest = {name: '0' * 64 for name in REQUIRED_EXPORTS}
+    if mutation == 'empty':
+        manifest = {}
+    elif mutation == 'missing':
+        manifest.pop('recommendations.csv')
+    else:
+        manifest['other.txt'] = '0' * 64
+    (tmp_path / 'manifest.json').write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='all eight required'):
+        verify_export(tmp_path)
+
+
+@pytest.mark.parametrize('mutation', ['missing_user', 'missing_model', 'duplicate_rank',
+                                     'duplicate_item', 'rank_gap', 'nan_score'])
+def test_export_verification_checks_coverage_and_rows(tmp_path, mutation):
+    import hashlib
+    import json
+    import shutil
+    from src.config import ARTIFACTS_DIR
+    from src.run_neural import verify_export
+    for source in (ARTIFACTS_DIR / 'neural').iterdir():
+        if source.is_file():
+            shutil.copy2(source, tmp_path / source.name)
+    path = tmp_path / 'recommendations.csv'
+    frame = pd.read_csv(path)
+    if mutation == 'missing_user':
+        frame = frame.loc[frame.user_id != frame.user_id.iloc[0]]
+    elif mutation == 'missing_model':
+        frame = frame.loc[frame.model != frame.model.iloc[0]]
+    elif mutation == 'duplicate_rank':
+        frame.loc[1, 'rank'] = frame.loc[0, 'rank']
+    elif mutation == 'duplicate_item':
+        frame.loc[1, 'content_id'] = frame.loc[0, 'content_id']
+    elif mutation == 'rank_gap':
+        frame.loc[0, 'rank'] = 11
+    else:
+        frame.loc[0, 'score'] = np.nan
+    frame.to_csv(path, index=False)
+    manifest = json.loads((tmp_path / 'manifest.json').read_text())
+    manifest['recommendations.csv'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (tmp_path / 'manifest.json').write_text(json.dumps(manifest))
+    with pytest.raises(ValueError):
+        verify_export(tmp_path)

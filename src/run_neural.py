@@ -111,8 +111,17 @@ def run(output: Path, config: NeuralConfig):
     return system, metrics, summary
 
 
+REQUIRED_EXPORTS = frozenset({
+    "neural_recommender.pt", "model_metrics.csv", "evaluation_details.csv",
+    "training_history.csv", "recommendations.csv", "training_examples.csv",
+    "training_curves.png", "run_summary.json",
+})
+
+
 def verify_export(output: Path):
     hashes = json.loads((output / "manifest.json").read_text())
+    if not isinstance(hashes, dict) or set(hashes) != REQUIRED_EXPORTS:
+        raise ValueError("Manifest must cover all eight required neural artifacts")
     for name, expected in hashes.items():
         if Path(name).name != name:
             raise ValueError("Invalid manifest path")
@@ -122,9 +131,24 @@ def verify_export(output: Path):
     system = NeuralSystem.load(output / "neural_recommender.pt")
     saved = pd.read_csv(output / "recommendations.csv")
     models = system.recommenders()
+    expected_groups = {(model, user) for model in models for user in system.users.user_id}
+    required_columns = {"model", "user_id", "rank", "content_id", "score"}
+    if not required_columns.issubset(saved.columns):
+        raise ValueError("Recommendation export is missing required columns")
+    actual_groups = set(zip(saved.model, saved.user_id))
+    if actual_groups != expected_groups:
+        raise ValueError("Recommendation export must cover both models and every checkpoint user")
+    if saved.duplicated(["model", "user_id", "rank"]).any():
+        raise ValueError("Recommendation export contains duplicate ranks")
+    if saved.duplicated(["model", "user_id", "content_id"]).any():
+        raise ValueError("Recommendation export contains duplicate content IDs")
+    if not np.isfinite(saved.score.to_numpy(dtype=float)).all():
+        raise ValueError("Recommendation export contains nonfinite scores")
     for (model, user), expected in saved.groupby(["model", "user_id"]):
         actual = models[model].recommend(user, k=10)
         expected = expected.sort_values("rank")
+        if expected["rank"].tolist() != list(range(1, len(actual) + 1)):
+            raise ValueError(f"Recommendation ranks must be contiguous for {model}/{user}")
         if actual.content_id.tolist() != expected.content_id.tolist():
             raise AssertionError(f"Recommendation IDs changed for {model}/{user}")
         np.testing.assert_allclose(actual.score, expected.score, rtol=1e-5, atol=1e-6)
