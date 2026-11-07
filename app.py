@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
@@ -14,8 +17,16 @@ from src.recommenders import RankingRecommender, build_all_models, split_tags
 st.set_page_config(page_title="Crypto Content Recommender", page_icon="🧭", layout="wide")
 
 
-@st.cache_resource(show_spinner="Training six recommendation strategies…")
-def load_system():
+def system_signature() -> str:
+    digest = hashlib.sha256()
+    for path in sorted((Path(__file__).parent / "src").glob("*.py")):
+        digest.update(path.name.encode("utf-8"))
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+@st.cache_resource(show_spinner="Training six recommendation strategies…", max_entries=1)
+def load_system(code_revision: str):
     bundle = build_dataset(save=False)
     split = chronological_holdout(bundle.interactions, bundle.contents)
     models = build_all_models(split.contents, bundle.users, split.train)
@@ -38,7 +49,7 @@ def explain(row: pd.Series, user: pd.Series) -> str:
     return "Content matches: " + ("; ".join(reasons) if reasons else "content selected by the chosen strategy") + "."
 
 
-bundle, split, models, metrics, details = load_system()
+bundle, split, models, metrics, details = load_system(system_signature())
 
 st.title("Crypto Content Recommendation")
 st.caption("Six recommendation strategies · Synthetic content and interactions · Offline evaluation")
