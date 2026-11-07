@@ -4,13 +4,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import threading
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from typing import Annotated, Literal
 
 import torch
+from anyio.to_thread import current_default_thread_limiter
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -31,6 +33,7 @@ class RecommendationRequest(BaseModel):
 
 
 class RecommendationItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
     content_id: str
     title: str
     topic_tags: str
@@ -38,6 +41,7 @@ class RecommendationItem(BaseModel):
 
 
 class RecommendationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
     user_id: str
     model: ModelName
     checkpoint_sha256: str
@@ -45,14 +49,46 @@ class RecommendationResponse(BaseModel):
     items: list[RecommendationItem]
 
 
-def create_app(checkpoint: Path = DEFAULT_CHECKPOINT, torch_threads: int = 1) -> FastAPI:
+class InferenceGate:
+    """Bound model admission and lock wait without occupying every worker token."""
+    def __init__(self, capacity: int, queue_timeout: float):
+        self.admission = threading.BoundedSemaphore(capacity)
+        self.execution = threading.Lock()
+        self.queue_timeout = queue_timeout
+
+    @contextmanager
+    def slot(self):
+        if not self.admission.acquire(blocking=False):
+            raise HTTPException(status_code=429, detail="Inference capacity is full",
+                                headers={"Retry-After": "1"})
+        acquired = False
+        try:
+            acquired = self.execution.acquire(timeout=self.queue_timeout)
+            if not acquired:
+                raise HTTPException(status_code=503, detail="Inference queue wait timed out",
+                                    headers={"Retry-After": "1"})
+            yield
+        finally:
+            if acquired:
+                self.execution.release()
+            self.admission.release()
+
+
+def create_app(checkpoint: Path = DEFAULT_CHECKPOINT, torch_threads: int = 1,
+               max_inflight: int = 32, queue_timeout: float = 1.0) -> FastAPI:
     if isinstance(torch_threads, bool) or not isinstance(torch_threads, int) or torch_threads < 1:
         raise ValueError("torch_threads must be a positive integer")
+    if isinstance(max_inflight, bool) or not isinstance(max_inflight, int) or not 1 <= max_inflight <= 32:
+        raise ValueError("max_inflight must be an integer between 1 and 32")
+    if (isinstance(queue_timeout, bool) or not isinstance(queue_timeout, (int, float))
+            or not math.isfinite(queue_timeout) or queue_timeout <= 0):
+        raise ValueError("queue_timeout must be positive and finite")
     checkpoint = Path(checkpoint).resolve()
 
     @asynccontextmanager
     async def lifespan(app):
         torch.set_num_threads(torch_threads)
+        current_default_thread_limiter().total_tokens = 40
         # Verify the adjacent manifest before loading weights into the process.
         manifest = json.loads(checkpoint.with_name("manifest.json").read_text())
         expected = manifest.get(checkpoint.name)
@@ -63,11 +99,13 @@ def create_app(checkpoint: Path = DEFAULT_CHECKPOINT, torch_threads: int = 1) ->
         models = system.recommenders()
         for model in models.values():
             model.recommend("new-user", k=10)
-        app.state.runtime = (system, models, threading.Lock())
+        app.state.runtime = (system, models, InferenceGate(max_inflight, queue_timeout))
         app.state.metadata = {
             "status": "ready", "pid": os.getpid(), "device": "cpu",
             "torch_threads": torch.get_num_threads(), "workers": 1,
             "inference_slots": 1, "checkpoint_sha256": actual,
+            "max_inflight": max_inflight, "queue_timeout_seconds": queue_timeout,
+            "threadpool_tokens": 40,
             "training_cutoff": system.reference.isoformat(),
             "catalog_size": len(system.contents), "known_users": len(system.users),
             "candidate_count": system.config.candidate_count,
@@ -78,7 +116,7 @@ def create_app(checkpoint: Path = DEFAULT_CHECKPOINT, torch_threads: int = 1) ->
         finally:
             app.state.runtime = None
 
-    app = FastAPI(title="Crypto Content Neural Inference", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="Crypto Content Neural Inference", version="1.1.0", lifespan=lifespan)
     app.state.runtime = None
 
     def runtime():
@@ -97,9 +135,9 @@ def create_app(checkpoint: Path = DEFAULT_CHECKPOINT, torch_threads: int = 1) ->
 
     @app.post("/recommend", response_model=RecommendationResponse)
     def recommend(request: RecommendationRequest):
-        system, models, lock = runtime()
+        system, models, gate = runtime()
         # Requests share immutable weights and history, with one CPU inference slot.
-        with lock:
+        with gate.slot():
             result = models[request.model].recommend(request.user_id, request.k, request.exclude_seen)
         return {
             "user_id": request.user_id, "model": request.model,
@@ -118,9 +156,11 @@ def main():
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT)
     parser.add_argument("--torch-threads", type=int, default=1)
+    parser.add_argument("--max-inflight", type=int, default=32)
+    parser.add_argument("--queue-timeout", type=float, default=1.0)
     args = parser.parse_args()
-    uvicorn.run(create_app(args.checkpoint, args.torch_threads), host=args.host, port=args.port,
-                workers=1, access_log=False, log_level="warning")
+    app = create_app(args.checkpoint, args.torch_threads, args.max_inflight, args.queue_timeout)
+    uvicorn.run(app, host=args.host, port=args.port, workers=1, access_log=False, log_level="warning")
 
 
 if __name__ == "__main__":

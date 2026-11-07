@@ -66,3 +66,4 @@ artifacts/neural/*
 
 # Local inference benchmark server log
 reports/service_benchmark/server.log
+reports/service_review_benchmark/server.log

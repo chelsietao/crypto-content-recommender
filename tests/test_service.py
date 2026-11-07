@@ -102,3 +102,50 @@ def test_not_ready_and_checkpoint_hash_mismatch(tmp_path):
     with pytest.raises(ValueError, match='hash does not match'):
         with TestClient(create_app(checkpoint)):
             pass
+
+
+@pytest.mark.parametrize('capacity, expected_status', [(1, 429), (2, 503)])
+def test_full_or_timed_out_queue_rejects_and_recovers(capacity, expected_status):
+    import threading
+    started, release = threading.Event(), threading.Event()
+    app = create_app(max_inflight=capacity, queue_timeout=0.05)
+    with TestClient(app) as client:
+        model = app.state.runtime[1][MODEL_NAMES[0]]
+        original = model.recommend
+        def blocked(*args, **kwargs):
+            started.set()
+            assert release.wait(5), 'Test did not release inference'
+            return original(*args, **kwargs)
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with patch.object(model, 'recommend', side_effect=blocked):
+                running = pool.submit(client.post, '/recommend', json={'user_id': 'U0001'})
+                try:
+                    assert started.wait(3)
+                    response = client.post('/recommend', json={'user_id': 'U0002'})
+                    assert response.status_code == expected_status
+                    assert response.headers['Retry-After'] == '1'
+                    assert client.get('/health').status_code == 200
+                    assert client.get('/ready').json()['max_inflight'] == capacity
+                finally:
+                    release.set()
+                assert running.result(timeout=3).status_code == 200
+        assert client.post('/recommend', json={'user_id': 'U0002'}).status_code == 200
+
+
+def test_failed_inference_releases_all_capacity():
+    app = create_app(max_inflight=1, queue_timeout=0.05)
+    with TestClient(app, raise_server_exceptions=False) as client:
+        model = app.state.runtime[1][MODEL_NAMES[0]]
+        with patch.object(model, 'recommend', side_effect=RuntimeError('injected inference failure')):
+            assert client.post('/recommend', json={'user_id': 'U0001'}).status_code == 500
+        assert client.post('/recommend', json={'user_id': 'U0001'}).status_code == 200
+
+
+@pytest.mark.parametrize('settings', [
+    {'max_inflight': 0}, {'max_inflight': 33}, {'max_inflight': True}, {'max_inflight': 1.5},
+    {'queue_timeout': 0}, {'queue_timeout': -1}, {'queue_timeout': float('nan')},
+    {'queue_timeout': float('inf')}, {'queue_timeout': True},
+])
+def test_invalid_queue_settings_rejected(settings):
+    with pytest.raises(ValueError):
+        create_app(**settings)

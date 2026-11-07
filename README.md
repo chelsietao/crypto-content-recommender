@@ -6,7 +6,7 @@
 
 PyTorch 訓練、checkpoint 與推薦指標的實作說明，請見 [PyTorch 雙塔召回與神經排序器](README_PYTORCH.md)，本次推論與驗證修正請見 [雙塔召回優化紀錄](README_PYTORCH_REVIEW.md)。
 
-獨立 HTTP 推論與本機延遲、吞吐量、錯誤率量測，請見 [推論服務與效能測試](README_INFERENCE_SERVICE.md)。
+獨立 HTTP 推論與效能量測，請見 [推論服務與效能測試](README_INFERENCE_SERVICE.md)，服務 1.1 的容量控制、逾時與嚴格驗證請見 [服務優化紀錄](README_INFERENCE_SERVICE_REVIEW.md)。
 
 ## 資料與流程
 

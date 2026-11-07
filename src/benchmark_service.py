@@ -22,22 +22,27 @@ import torch
 
 from src.config import PROJECT_ROOT, REPORTS_DIR
 from src.neural import NeuralSystem
-from src.serve_neural import DEFAULT_CHECKPOINT, MODEL_NAMES
+from src.serve_neural import DEFAULT_CHECKPOINT, MODEL_NAMES, RecommendationResponse
 
 
-def validate_response(response, expected, user, model, checkpoint_hash):
+def validate_response(response, expected, user, model, checkpoint_hash, training_cutoff):
     response.raise_for_status()
-    payload = response.json()
-    if (payload['user_id'], payload['model'], payload['checkpoint_sha256']) != (user, model, checkpoint_hash):
-        raise AssertionError('Response identity mismatch')
-    if [row['content_id'] for row in payload['items']] != expected[0]:
+    if response.status_code != 200:
+        raise AssertionError('Unexpected recommendation status')
+    payload = RecommendationResponse.model_validate(response.json())
+    if (payload.user_id, payload.model, payload.checkpoint_sha256, payload.training_cutoff) != (
+            user, model, checkpoint_hash, training_cutoff):
+        raise AssertionError('Response identity or cutoff mismatch')
+    if [row.content_id for row in payload.items] != expected[0]:
         raise AssertionError('Recommendation IDs or ordering mismatch')
-    scores = np.array([row['score'] for row in payload['items']])
-    if not np.isfinite(scores).all() or not np.allclose(scores, expected[1], rtol=1e-5, atol=1e-6):
+    scores = np.array([row.score for row in payload.items])
+    expected_scores = np.asarray(expected[1])
+    if scores.shape != expected_scores.shape or not np.isfinite(scores).all() or not np.allclose(
+            scores, expected_scores, rtol=1e-5, atol=1e-6):
         raise AssertionError('Recommendation scores mismatch')
 
 
-async def measure(base_url, model, users, expected, checkpoint_hash, concurrency, count, repetition):
+async def measure(base_url, model, users, expected, checkpoint_hash, training_cutoff, concurrency, count, repetition):
     limits = httpx.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
     async with httpx.AsyncClient(base_url=base_url, limits=limits, timeout=10, trust_env=False) as client:
         # Warm the connection pool and each worker path outside the measured interval.
@@ -45,7 +50,7 @@ async def measure(base_url, model, users, expected, checkpoint_hash, concurrency
             user = users[worker % len(users)]
             for _ in range(5):
                 response = await client.post('/recommend', json={'user_id': user, 'model': model})
-                validate_response(response, expected[(model, user)], user, model, checkpoint_hash)
+                validate_response(response, expected[(model, user)], user, model, checkpoint_hash, training_cutoff)
         await asyncio.gather(*(warm(worker) for worker in range(concurrency)))
         records = []
         async def worker(worker_id):
@@ -57,7 +62,7 @@ async def measure(base_url, model, users, expected, checkpoint_hash, concurrency
                 try:
                     response = await client.post('/recommend', json={'user_id': user, 'model': model})
                     status = response.status_code
-                    validate_response(response, expected[(model, user)], user, model, checkpoint_hash)
+                    validate_response(response, expected[(model, user)], user, model, checkpoint_hash, training_cutoff)
                 except (httpx.HTTPError, AssertionError, KeyError, ValueError, TypeError) as exc:
                     error = type(exc).__name__
                 records.append({'model': model, 'concurrency': concurrency, 'repetition': repetition,
@@ -129,7 +134,7 @@ def run_benchmark(output: Path, checkpoint: Path = DEFAULT_CHECKPOINT, requests:
                     rss_before = server.memory_info().rss
                     for repetition in range(repetitions):
                         records, elapsed = asyncio.run(measure(base_url, model, users, expected,
-                            checkpoint_hash, concurrency, requests, repetition))
+                            checkpoint_hash, system.reference.isoformat(), concurrency, requests, repetition))
                         combined.extend(records)
                         total += elapsed
                         repeats.append({'model': model, 'concurrency': concurrency,
@@ -151,7 +156,7 @@ def run_benchmark(output: Path, checkpoint: Path = DEFAULT_CHECKPOINT, requests:
         cpu_name = subprocess.check_output(['sysctl', '-n', 'machdep.cpu.brand_string'], text=True).strip()
     report = {'measured_at_utc': datetime.now(timezone.utc).isoformat(),
         'protocol': 'HTTP/1.1 over loopback, closed-loop persistent connections, no retries',
-        'latency_scope': 'client request construction through HTTP response parsing and result validation',
+        'latency_scope': 'client request construction through HTTP parsing, strict response schema and result validation',
         'percentile_method': 'numpy.percentile linear, successful measured requests only',
         'throughput_scope': 'successful requests divided by total measured wall time',
         'warmup_requests_per_worker_per_repetition': 5,
