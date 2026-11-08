@@ -1,98 +1,74 @@
 # Crypto Content Recommendation System
 
-這個專案以加密貨幣內容推薦為主題，完成合成資料產生、六種推薦基線、PyTorch 雙塔召回與神經排序器、離線評估及 Streamlit 展示介面。
+這個專案以加密貨幣內容推薦為主題，完成合成資料產生、六種推薦基線、PyTorch 雙塔召回與神經排序器、Transformer 內容重排序、離線評估及 Streamlit 展示，並提供 CPU HTTP 推論服務、Apple GPU profiling 與 DDP 訓練驗證。
 
-公開展示已部署至 Streamlit Community Cloud，可開啟 [互動展示](https://rkatmcugsybuh4d5cejg6s.streamlit.app/) 操作六種推薦方法與評估儀表板。
+完整架構、九模型結果、展示與服務涵蓋範圍，以及本次 Transformer 重訓複查，請見 [系統總覽與驗證摘要](README_REPOSITORY_OVERVIEW.md)。
 
-PyTorch 訓練、checkpoint 與推薦指標的實作說明，請見 [PyTorch 雙塔召回與神經排序器](README_PYTORCH.md)，本次推論與驗證修正請見 [雙塔召回優化紀錄](README_PYTORCH_REVIEW.md)。
+## 資料與評估
 
-獨立 HTTP 推論與效能量測，請見 [推論服務與效能測試](README_INFERENCE_SERVICE.md)，服務 1.1 的容量控制、逾時與嚴格驗證請見 [服務優化紀錄](README_INFERENCE_SERVICE_REVIEW.md)。
+資料包含 240 筆內容、80 位合成使用者與 8,564 筆互動，互動類型包括曝光、點擊、喜歡、收藏與隱藏，使用固定亂數種子產生。
 
+評估採用共用時間截止點，訓練使用截止點前的 6,852 筆互動與當時已發布的 199 筆內容，測試使用後續正向互動，排除已看過的內容與含隱藏回饋的配對，共有 30 位使用者符合條件。
 
-Apple GPU 的 MPS profiling 與排序優化，請見 [GPU profiling 與優化](README_GPU_PROFILING.md)，候選上限相容性請見 [GPU 版本修正紀錄](README_GPU_PROFILING_REVIEW.md)，六回合輪替與產出驗證請見 [GPU 量測方法更新](README_GPU_MEASUREMENT_AUDIT.md)。
+| 模型 | 方法 | Hit / Recall@10 | NDCG@10 |
+|---|---|---:|---:|
+| V1 | 熱門推薦與時間衰減 | 0.1333 | 0.0525 |
+| V2 | TF-IDF 內容推薦 | 0.1333 | 0.0711 |
+| V3 | 稀疏鄰居協同過濾 | 0.0333 | 0.0105 |
+| V4 | 四通道混合召回 | 0.1333 | 0.0617 |
+| V5 | 邏輯迴歸排序 | 0.6667 | 0.3981 |
+| V6 | 來源與主題多樣性重排 | 0.6667 | 0.3991 |
+| V7 | PyTorch 雙塔召回 | 0.1333 | 0.0452 |
+| V8 | 凍結雙塔後的神經排序器 | 0.2333 | 0.1013 |
+| V9 | Transformer 內容重排序 | 0.2000 | 0.1225 |
 
-DDP 訓練、全域 batch 與 CPU 一致性驗證，請見 [分散式訓練實作](README_DDP_TRAINING.md)，完整步驟、checkpoint 評估與程序清理修正請見 [DDP 驗證優化紀錄](README_DDP_REVIEW.md)。
+九個模型的使用者與測試目標一致，V1 至 V6 採各自候選規則，V7 至 V9 共用最多 50 筆雙塔候選，完整指標見 [九模型 CSV](reports/REPOSITORY_MODEL_METRICS.csv)，逐位使用者結果保存在 `artifacts` 與 `reports/transformer_reranking`。
 
-訓練曲線與 checkpoint 內部紀錄的逐筆核對，請見 [DDP 訓練曲線驗證](README_DDP_HISTORY_REVIEW.md)。
+## 展示與推論
 
-V9 Transformer 的內容重排序、品質評估與 CPU 延遲及資源量測，請見 [Transformer 內容重排序](README_TRANSFORMER_RERANKING.md)。
-## 資料與流程
+[Streamlit 公開展示](https://rkatmcugsybuh4d5cejg6s.streamlit.app/) 提供 V1 至 V6 的互動推薦、工作階段回饋及儀表板，PyTorch 分頁展示 V7 與 V8 的已儲存推薦、訓練曲線與離線指標。
 
-資料包含 240 筆內容、80 位合成使用者與 8,564 筆互動事件，互動類型包括曝光、點擊、喜歡、收藏與隱藏，使用固定亂數種子產生。
+獨立 FastAPI 服務提供 V7 與 V8 的 CPU 推論，實作回應驗證、容量控制及鎖等待期限，HTTP 效能資料保存於 `reports/service_review_benchmark`，啟動與量測方式見 [服務說明](README_INFERENCE_SERVICE_REVIEW.md)。
 
-評估採用共用時間截止點，訓練只使用截止點前的互動，內容清單只保留當時已發布的內容，再從後續互動中選出每位使用者第一筆符合條件的正向內容作為測試目標，並排除訓練期間已看過的內容與含隱藏回饋的配對。
+V9 保存 Transformer checkpoint、訓練樣本時間稽核及品質評估，CPU 延遲、吞吐量與資源成本採四回合、八個獨立工作程序完成量測，詳見 [Transformer 重排序](README_TRANSFORMER_RERANKING.md)。
 
-| 階段 | 方法與用途 |
-|---|---|
-| V1 熱門推薦 | 依互動權重與時間衰減，計算內容熱門程度 |
-| V2 內容推薦 | 使用 TF-IDF，結合閱讀紀錄與使用者填寫的興趣 |
-| V3 協同過濾 | 使用稀疏矩陣與每筆內容的前 40 個相似鄰居，計算互動相似度 |
-| V4 混合召回 | 從熱門、內容、協同與探索四個通道各取前 20 筆，合併去重成候選集合 |
-| V5 邏輯迴歸排序 | 使用內容相似度、興趣匹配、熱門度與新鮮度等特徵，對候選內容排序 |
-| V6 多樣性重排 | 結合排序分數與主題差異，每個來源最多 2 筆、每個主要主題最多 3 筆 |
+## 硬體與分散式訓練
 
-排序器將訓練期間再切成歷史區段與標籤區段，使用前段歷史建立特徵與候選集合，再以後段互動判定正負標籤。
+GPU profiling 使用 Apple M5 Pro 的 MPS，核對 V7 與 V8 的批次推論、推薦一致性與排序優化，六回合輪替結果見 [GPU 量測方法](README_GPU_MEASUREMENT_AUDIT.md)。
 
-詳細修改紀錄與驗證結果，請見 [系統修正與驗證報告](reports/SYSTEM_REVIEW_AND_FIXES.md)。
-
-## 本次修正
-
-- **時間切分與內容範圍**，統一訓練截止點，排除截止點後的互動與尚未發布的內容。
-- **負回饋處理**，同一位使用者對同一筆內容出現隱藏事件時，保留負向偏好，避免被曝光或點擊覆蓋。
-- **排序器特徵**，將特徵歷史與訓練標籤分段，並快取每位使用者的特徵，移除逐筆互動重算的流程。
-- **候選召回**，建立四個通道的候選集合，排序器只對候選內容評分，評估結果加入候選召回率。
-- **相似度計算**，改用分塊計算與稀疏鄰居儲存，取代完整的內容兩兩相似度矩陣。
-- **重排限制**，維持來源與主題數量上限，符合條件的內容不足時，回傳符合限制的筆數。
-- **未命中分析**，保留所有模型的未命中紀錄，依目標是否進入候選集合分類。
-- **展示介面**，啟動時在記憶體產生資料，按鈕回饋儲存於目前瀏覽器工作階段。
-
-## 評估結果
-
-本次執行使用 6,852 筆訓練事件與截止點前已發布的 199 筆內容，共有 30 位使用者符合測試條件，以下指標依每人前 10 筆推薦結果計算。
-
-| 模型 | Hit / Recall@10 | NDCG@10 | 內容覆蓋率 | 主題多樣性 |
-|---|---:|---:|---:|---:|
-| V1 熱門推薦 | 0.1333 | 0.0525 | 0.1005 | 0.8657 |
-| V2 內容推薦 | 0.1333 | 0.0711 | 0.6884 | 0.6988 |
-| V3 協同過濾 | 0.0333 | 0.0105 | 0.7638 | 0.8753 |
-| V4 混合召回 | 0.1333 | 0.0617 | 0.6281 | 0.7501 |
-| V5 邏輯迴歸排序 | 0.6667 | 0.3981 | 0.4322 | 0.8163 |
-| V6 多樣性重排 | 0.6667 | 0.3991 | 0.4372 | 0.8978 |
-
-每位使用者只有一筆測試目標，因此 Hit Rate 與 Recall 的數值相同，NDCG 衡量命中位置，內容覆蓋率衡量推薦結果涵蓋的內容比例，主題多樣性依推薦清單中的主題標籤差異計算。
-
-完整結果存放於 [評估報告](reports/EXPERIMENT_RESULTS.md)，每位使用者的評估明細與候選召回紀錄存放於 [artifacts](artifacts/)。
+DDP 保存 CPU／Gloo 一程序與二程序的實測結果，涵蓋全域 batch、梯度加權、checkpoint 重載及通訊取樣，程式另提供 CUDA／NCCL 分支，說明見 [分散式訓練](README_DDP_TRAINING.md)。
 
 ## 執行方式
 
-本機驗證本機驗證使用 Python 3.9，安裝套件後執行測試、資料流程與展示介面。
+本機驗證使用 Python 3.9 與 PyTorch 2.6.0，GitHub Actions 使用 Python 3.11，安裝完整依賴後可執行測試、基礎資料流程及展示介面。
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
-python -m pytest -q
+python -m pip install -r requirements-service.txt
+RUN_DDP_INTEGRATION=1 PYTORCH_ENABLE_MPS_FALLBACK=0 python -m pytest -q
 python -m src.run_pipeline
 streamlit run app.py
 ```
 
-資料流程會產生合成資料、模型指標、推薦範例與報告，Streamlit 介面提供使用者推薦清單、模型指標、分群表現與排序器係數。
+核對已保存的 Transformer 與 DDP 產出時，使用以下命令，推薦與品質會從 checkpoint 重算，效能統計則由原始量測紀錄重算。
 
-## 驗證
-
-基礎流程通過 29 項測試，安裝 `requirements-neural.txt` 後通過 50 項測試，涵蓋時間邊界、隱藏標籤、候選限制、排序特徵、稀疏鄰居與重排上限，並完成資料流程及展示介面啟動與工作階段回饋檢查。
-
-## 專案結構
-
-```text
-app.py                         Streamlit 展示介面
-src/data_pipeline.py           合成資料產生與資料檢查
-src/recommenders.py            六種推薦方法與候選召回
-src/evaluation.py              時間切分、評估與未命中紀錄
-src/analytics.py               DuckDB 分析與圖表
-src/run_pipeline.py            資料、模型與報告的執行入口
-tests/                         資料、時間邊界、標籤與推薦規則測試
-notebooks/                     逐步執行範例
-reports/                       資料格式、評估與未命中分析
-artifacts/                     模型指標、推薦範例與執行摘要
+```bash
+python -m src.run_transformer --verify-only
+python -m src.validate_distributed --verify-only --output reports/ddp_cpu_reference
+python -m src.validate_distributed --verify-only --output reports/ddp_cpu_validation
 ```
+
+## 驗證與版本文件
+
+本次本機完整測試共 198 項通過，包含 CPU 雙程序 DDP、關閉 CPU fallback 的 MPS 檢查與 Transformer 產出驗證，Transformer 重訓的最大參數差異為 0，記錄見 [複查摘要](reports/TRANSFORMER_AUDIT.json)。
+
+| 主題 | 文件 |
+|---|---|
+| 全專案範圍與九模型結果 | [系統總覽](README_REPOSITORY_OVERVIEW.md) |
+| 時間切分與六種基線修正 | [系統修正報告](reports/SYSTEM_REVIEW_AND_FIXES.md) |
+| 雙塔與神經排序器 | [PyTorch 實作](README_PYTORCH.md)、[召回優化](README_PYTORCH_REVIEW.md) |
+| HTTP 推論與容量控制 | [服務量測](README_INFERENCE_SERVICE.md)、[服務 1.1](README_INFERENCE_SERVICE_REVIEW.md) |
+| Apple GPU profiling | [profiling 實作](README_GPU_PROFILING.md)、[候選上限修正](README_GPU_PROFILING_REVIEW.md)、[輪替量測](README_GPU_MEASUREMENT_AUDIT.md) |
+| DDP | [訓練實作](README_DDP_TRAINING.md)、[步驟與程序清理](README_DDP_REVIEW.md)、[曲線驗證](README_DDP_HISTORY_REVIEW.md) |
+| Transformer | [品質、延遲及資源成本](README_TRANSFORMER_RERANKING.md) |

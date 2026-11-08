@@ -1,0 +1,31 @@
+{
+  "baseline_commit": "a93940df478727f00b256b81985fb3810355adb1",
+  "device": "cpu",
+  "training_reproduced": true,
+  "maximum_retrained_parameter_error": 0.0,
+  "training_history_exact_match": true,
+  "training_audit_exact_match": true,
+  "inference_batch_checks": {
+    "1": true,
+    "7": true,
+    "50": true
+  },
+  "empty_candidates_return_empty": true,
+  "exports": {
+    "files": 12,
+    "recommendation_users": 81,
+    "benchmark_requests": 800
+  },
+  "checkpoint_sha256": "e646bf249cc0266d8e77caab75bdd0e9b268f9864ae46554d8736b998b9fb370",
+  "shared_evaluation_targets": 30,
+  "metric_sources_sha256": {
+    "artifacts/model_metrics.csv": "fbf104e92698fc71d9f0105f3d91a566cce23f6de8e981b864170c5390593d5c",
+    "artifacts/evaluation_details.csv": "11b3db1ddf397c2f166b82766dcda62bacd248cf92e0ca5118d2530b9e945ac8",
+    "reports/transformer_reranking/model_metrics.csv": "2d1cbd59947fd21813cb31216a6fdae9cee8aa7e3adaa3e0008158bb7d9e3896",
+    "reports/transformer_reranking/evaluation_details.csv": "4c30c9b23862cb45808ad2c4b75bbd781bea5df3924e6bf0da3bf5745058052b",
+    "reports/REPOSITORY_MODEL_METRICS.csv": "bb6edcc795940f2229300ff86edb8058e09296b0596d074e0f4da702e47c9e09"
+  },
+  "tests_passed": 198,
+  "ddp_integration_enabled": true,
+  "mps_cpu_fallback": false
+}
