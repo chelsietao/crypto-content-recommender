@@ -139,12 +139,27 @@ class TransformerReranker(TwoTowerRecommender):
 
     @classmethod
     def load(cls, path, base_checkpoint):
+        digest = hashlib.sha256(Path(base_checkpoint).read_bytes()).hexdigest()
+        payload = cls._read_checkpoint(path, digest)
+        return cls._restore(payload, NeuralSystem.load(base_checkpoint))
+
+    @classmethod
+    def from_checkpoint(cls, path, system, base_sha256):
+        """Attach a checkpoint to the base system already loaded by the host."""
+        return cls._restore(cls._read_checkpoint(path, base_sha256), system)
+
+    @staticmethod
+    def _read_checkpoint(path, base_sha256):
         payload = torch.load(path, map_location='cpu', weights_only=True)
         if payload['format_version'] != 1:
             raise ValueError('Unsupported Transformer checkpoint format')
-        if payload['base_sha256'] != hashlib.sha256(Path(base_checkpoint).read_bytes()).hexdigest():
+        if payload['base_sha256'] != base_sha256:
             raise ValueError('Frozen retrieval checkpoint differs')
-        result = cls(NeuralSystem.load(base_checkpoint), TransformerConfig(**payload['config']))
+        return payload
+
+    @classmethod
+    def _restore(cls, payload, system):
+        result = cls(system, TransformerConfig(**payload['config']))
         result.network.load_state_dict(payload['state'])
         result.network.eval()
         result.history, result.training_summary = payload['history'], payload['training_summary']

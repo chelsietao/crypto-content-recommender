@@ -149,3 +149,40 @@ def test_failed_inference_releases_all_capacity():
 def test_invalid_queue_settings_rejected(settings):
     with pytest.raises(ValueError):
         create_app(**settings)
+
+
+def test_transformer_http_matches_saved_users_and_exposes_both_checkpoint_hashes(service):
+    from src.config import REPORTS_DIR
+    _,client,loader=service
+    loaded_before_requests=loader.call_count
+    saved=pd.read_csv(REPORTS_DIR/'transformer_reranking/recommendations.csv')
+    ready=client.get('/ready').json()
+    assert len(ready['models'])==3 and len(ready['transformer_checkpoint_sha256'])==64
+    for user,rows in saved.groupby('user_id'):
+        response=client.post('/recommend',json={'user_id':user,'model':MODEL_NAMES[2]})
+        assert response.status_code==200
+        payload=response.json()
+        assert payload['checkpoint_sha256']==ready['checkpoint_sha256']
+        assert payload['reranker_checkpoint_sha256']==ready['transformer_checkpoint_sha256']
+        assert [item['content_id'] for item in payload['items']]==rows.sort_values('rank').content_id.tolist()
+        np.testing.assert_allclose([item['score'] for item in payload['items']],rows.sort_values('rank').score,atol=1e-6,rtol=1e-5)
+    assert loader.call_count==loaded_before_requests
+    models=service[0].state.runtime[1]
+    assert models[MODEL_NAMES[2]].system is models[MODEL_NAMES[0]].system
+
+
+def test_transformer_can_be_disabled_and_failure_is_rejected_before_inference():
+    with TestClient(create_app(transformer_checkpoint=None)) as client:
+        assert len(client.get('/ready').json()['models'])==2
+        assert client.post('/recommend',json={'user_id':'new-user','model':MODEL_NAMES[2]}).status_code==422
+        assert client.post('/recommend',json={'user_id':'new-user'}).status_code==200
+
+
+def test_changed_transformer_manifest_fails_closed(tmp_path):
+    from src.serve_neural import DEFAULT_TRANSFORMER
+    target=tmp_path/'transformer.pt'
+    target.write_bytes(DEFAULT_TRANSFORMER.read_bytes())
+    (tmp_path/'manifest.json').write_text(json.dumps({'transformer.pt':'0'*64}))
+    with pytest.raises(ValueError,match='hash does not match'):
+        with TestClient(create_app(transformer_checkpoint=target)):
+            pass

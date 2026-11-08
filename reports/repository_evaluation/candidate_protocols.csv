@@ -1,0 +1,10 @@
+model,candidate_protocol,min_candidates,mean_candidates,max_candidates
+v1_popularity,baseline_model_defined,137,141.2,145
+v2_content_based,baseline_model_defined,137,141.2,145
+v3_collaborative_filtering,baseline_model_defined,137,141.2,145
+v4_hybrid,baseline_model_defined,61,65.96666666666667,70
+v5_logistic_ranker,baseline_model_defined,61,65.96666666666667,70
+v6_diversity_reranking,baseline_model_defined,61,65.96666666666667,70
+v7_pytorch_two_tower,two_tower_top_50,50,50.0,50
+v8_pytorch_neural_ranker,two_tower_top_50,50,50.0,50
+v9_transformer_content_reranker,two_tower_top_50,50,50.0,50

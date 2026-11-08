@@ -1,0 +1,8 @@
+{
+  "candidate_protocols.csv": "0f07c8af0336ddb86a0e8a850b878061ba919a0c7b409ccb0e14596b340b4ee8",
+  "evaluation_details.csv": "19f3a7743d185de1d2ea069090dd47f6807d79f0ed8157125bf0be33d090b16f",
+  "model_metrics.csv": "de26306ac94edcbd005f8fdc97221d776cd57e654901b49743e2263928e5a838",
+  "quality_intervals.csv": "42c68279a7be49fc8b121693a36eba9abaf09de04d4db18a7f07f1b137df6101",
+  "recommendations.csv": "81c562e2c3f89541f68af2deef4d98b4b1846fe164082cb0aa4352440d5f3b0f",
+  "run_summary.json": "65d5eb3df07810ae38581af0ef61e3ca506b998985732c398489f023fe837a5f"
+}

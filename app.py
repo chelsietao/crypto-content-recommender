@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from src.config import TOP_K
+from src.config import TOP_K, REPORTS_DIR
+from src.portfolio_exports import load_portfolio
 from src.data_pipeline import build_dataset
 from src.evaluation import evaluate_all, chronological_holdout
 from src.recommenders import RankingRecommender, build_all_models, split_tags
@@ -53,7 +53,7 @@ def explain(row: pd.Series, user: pd.Series) -> str:
 bundle, split, models, metrics, details = load_system(system_signature())
 
 st.title("Crypto Content Recommendation")
-st.caption("Six baselines · PyTorch retrieval and ranking · Synthetic data")
+st.caption("Six baselines · Two-tower retrieval · Neural and Transformer ranking · Synthetic data")
 summary = st.columns(4)
 summary[0].metric("Baseline models", len(models))
 summary[1].metric("Available content", len(split.contents))
@@ -62,7 +62,7 @@ summary[3].metric("Evaluated users", len(split.test))
 st.caption(f"Training and catalog cutoff: {split.cutoff.strftime('%Y-%m-%d %H:%M UTC')}")
 
 feed_tab, dashboard_tab, neural_tab, methodology_tab = st.tabs(
-    ["User Feed", "Data Scientist Dashboard", "PyTorch Models", "How it works"]
+    ["User Feed", "Data Scientist Dashboard", "Saved Model Results", "How it works"]
 )
 
 with feed_tab:
@@ -173,25 +173,35 @@ with methodology_tab:
 
 
 with neural_tab:
-    directory = Path(__file__).parent / "artifacts" / "neural"
-    if (directory / "run_summary.json").exists():
-        neural_summary = json.loads((directory / "run_summary.json").read_text())
-        neural_metrics = pd.read_csv(directory / "model_metrics.csv")
-        neural_recommendations = pd.read_csv(directory / "recommendations.csv")
-        st.subheader("PyTorch two-tower retrieval and neural ranking")
-        st.caption("Saved CPU training run · Time-ordered training and validation · 50 recall candidates")
+    st.subheader("Nine-model evaluation and saved recommendations")
+    st.caption("Common temporal targets · Model-specific candidate pools · Synthetic data")
+    try:
+        portfolio = load_portfolio(REPORTS_DIR / "repository_evaluation")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        st.error(f"Saved evaluation could not be verified: {exc}")
+    else:
+        saved_metrics = portfolio["model_metrics.csv"]
+        saved_recommendations = portfolio["recommendations.csv"]
+        saved_summary = portfolio["run_summary.json"]
         first, second, third = st.columns(3)
-        first.metric("Two-tower selected epoch", neural_summary["training"]["two_tower"]["selected_epoch"])
-        second.metric("Ranker selected epoch", neural_summary["training"]["neural_ranker"]["selected_epoch"])
-        third.metric("Checkpoint reload users", neural_summary["checkpoint_reload_users"])
-        st.image(str(directory / "training_curves.png"), caption="Training and validation losses, with selected checkpoints marked")
-        st.markdown("#### Eight-model offline evaluation")
-        st.dataframe(neural_metrics.round(4), width="stretch", hide_index=True)
-        chosen_user = st.selectbox("Neural model user", neural_recommendations.user_id.drop_duplicates())
-        chosen_model = st.selectbox("Neural model", neural_recommendations.model.drop_duplicates())
-        selected = neural_recommendations.loc[(neural_recommendations.user_id == chosen_user)
-                                             & (neural_recommendations.model == chosen_model)]
+        first.metric("Evaluated models", len(saved_metrics))
+        second.metric("Shared test users", saved_summary["evaluated_users"])
+        third.metric("Saved neural models", saved_recommendations.model.nunique())
+        st.dataframe(saved_metrics.round(4), width="stretch", hide_index=True)
+        st.markdown("#### Candidate protocols")
+        st.dataframe(portfolio["candidate_protocols.csv"].round(2), width="stretch", hide_index=True)
+        st.markdown("#### Paired quality differences from V6")
+        st.caption("2,000 bootstrap samples of the same users, percentile 95% intervals")
+        st.dataframe(portfolio["quality_intervals.csv"].round(4), width="stretch", hide_index=True)
+        chosen_user = st.selectbox("Saved model user", saved_recommendations.user_id.drop_duplicates(), key="saved_user")
+        chosen_model = st.selectbox("Saved model", saved_recommendations.model.drop_duplicates(), key="saved_model")
+        selected = saved_recommendations.loc[(saved_recommendations.user_id == chosen_user)
+                                             & (saved_recommendations.model == chosen_model)]
         st.dataframe(selected[["rank", "content_id", "title", "topic_tags", "score"]].round(4),
                      width="stretch", hide_index=True)
-        st.link_button("PyTorch training guide", "https://github.com/chelsietao/crypto-content-recommender/blob/main/README_PYTORCH.md")
-        st.link_button("Download checkpoint", "https://github.com/chelsietao/crypto-content-recommender/raw/refs/heads/main/artifacts/neural/neural_recommender.pt")
+        st.download_button("Download nine-model metrics", saved_metrics.to_csv(index=False),
+                           file_name="nine_model_metrics.csv", mime="text/csv")
+        st.markdown("#### Training curves")
+        curve_path = (REPORTS_DIR / "transformer_reranking" / "training_curves.png") if chosen_model.startswith("v9_") else (Path(__file__).parent / "artifacts/neural/training_curves.png")
+        st.image(str(curve_path), caption="Saved training and validation losses with selected checkpoints")
+        st.link_button("Transformer quality and cost report", "https://github.com/chelsietao/crypto-content-recommender/blob/main/README_TRANSFORMER_RERANKING.md")

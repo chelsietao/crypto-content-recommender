@@ -72,3 +72,13 @@ def test_rejected_requests_count_as_errors_in_summary():
     assert result['error_rate'] == 2 / 3
     assert result['successful_requests_per_second'] == 2
     assert result['p50_ms'] == result['p95_ms'] == result['p99_ms'] == 1
+
+
+@pytest.mark.parametrize('hash_value',[None,'wrong'])
+def test_v9_benchmark_requires_expected_transformer_checkpoint(hash_value):
+    payload=copy.deepcopy(PAYLOAD)
+    payload['model']='v9_transformer_content_reranker'
+    payload['reranker_checkpoint_sha256']=hash_value
+    response=httpx.Response(200,json=payload,request=httpx.Request('POST','http://localhost/recommend'))
+    with pytest.raises(AssertionError,match='reranker checkpoint mismatch'):
+        validate_response(response,(['a','b'],np.array([0.5,0.5])),'U0001',payload['model'],'checkpoint',CUTOFF,'transformer-checkpoint')

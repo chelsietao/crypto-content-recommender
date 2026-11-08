@@ -1,0 +1,26 @@
+{
+  "format_version": 1,
+  "models": [
+    "v1_popularity",
+    "v2_content_based",
+    "v3_collaborative_filtering",
+    "v4_hybrid",
+    "v5_logistic_ranker",
+    "v6_diversity_reranking",
+    "v7_pytorch_two_tower",
+    "v8_pytorch_neural_ranker",
+    "v9_transformer_content_reranker"
+  ],
+  "known_users": 80,
+  "recommendation_users": 81,
+  "evaluated_users": 30,
+  "catalog_size": 199,
+  "training_cutoff": "2026-03-08T04:48:00+00:00",
+  "checkpoint_sha256": {
+    "base": "9d18da57a128f3370a9b141df0c63d9cfbeadb2118136c40afdb56f504e6516a",
+    "transformer": "e646bf249cc0266d8e77caab75bdd0e9b268f9864ae46554d8736b998b9fb370"
+  },
+  "k": 10,
+  "bootstrap_baseline": "v6_diversity_reranking",
+  "target_sha256": "da60a2cd3ccb8cfed1c7f12789dfb009353ac1a06395c505731b6d70be93e27b"
+}

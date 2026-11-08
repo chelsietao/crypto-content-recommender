@@ -10,7 +10,7 @@
 
 本次重訓與稽核紀錄保存於 [TRANSFORMER_AUDIT.json](reports/TRANSFORMER_AUDIT.json)，Transformer 的品質、延遲與資源量測口徑見 [版本說明](README_TRANSFORMER_RERANKING.md)。
 
-完整本機測試共 198 項通過，包含 CPU 雙程序 DDP、關閉 CPU fallback 的 MPS 檢查、Transformer 時間區段及產出修改測試，本次保留原有模型參數與效能量測資料。
+本次整合後的完整測試共 214 項通過，新增三模型 HTTP、九模型重建及 Streamlit 操作核對，整合說明見 [三項改進](README_SYSTEM_INTEGRATION.md)，原有模型權重保持一致。
 
 ## 資料與評估
 
@@ -42,8 +42,8 @@ V7 雙塔先使用前段時間區段訓練與選模，權重凍結後供 V8 與 
 
 | 元件 | 已完成範圍 | 結果與入口 |
 |---|---|---|
-| Streamlit | V1 至 V6 互動推薦、回饋與儀表板，V7 與 V8 的已儲存推薦、指標及訓練曲線 | [公開展示](https://rkatmcugsybuh4d5cejg6s.streamlit.app/)，程式位於 `app.py` |
-| CPU HTTP 服務 | V7 與 V8 的 FastAPI 推論、嚴格格式驗證、容量上限及鎖等待期限 | [推論服務 1.1](README_INFERENCE_SERVICE_REVIEW.md)，保存 9,000 筆 HTTP 請求的量測 |
+| Streamlit | V1 至 V6 互動推薦、回饋與儀表板，九模型指標、候選與品質區間，以及 V7、V8、V9 的已儲存推薦及訓練曲線 | [公開展示](https://rkatmcugsybuh4d5cejg6s.streamlit.app/)，程式位於 `app.py` |
+| CPU HTTP 服務 | V7、V8、V9 的 FastAPI 推論、雙 checkpoint 身分與容量控制 | [推論服務 1.2](README_SYSTEM_INTEGRATION.md)，保存 1,200 筆三模型 HTTP 量測，1.1 版量測另保留 9,000 筆 |
 | Apple GPU profiling | V7 與 V8 的 MPS 輸入、批次及排序路徑，六回合輪替與推薦一致性核對 | [GPU 量測方法](README_GPU_MEASUREMENT_AUDIT.md)，裝置為 Apple M5 Pro 的 MPS |
 | DDP 訓練 | CPU／Gloo 一程序與二程序，固定全域 batch、梯度加權、checkpoint 及通訊取樣 | [DDP 訓練](README_DDP_TRAINING.md)，FP64 與 FP32 各保存一份比較報告 |
 | Transformer 量測 | V8 與 V9 的 CPU 函式延遲、吞吐量、CPU 時間、取樣 RSS 與參數大小 | [Transformer 重排序](README_TRANSFORMER_RERANKING.md)，四回合共 800 筆請求 |
@@ -59,6 +59,8 @@ Transformer 採 CPU FP32、單一運算執行緒及單請求併發，V8 的 p95 
 | `data/processed` | 可重現的合成內容、使用者與互動資料 |
 | `artifacts` | V1 至 V6 指標、推薦、未命中紀錄與執行摘要 |
 | `artifacts/neural` | 雙塔與 V8 checkpoint、訓練樣本、曲線及八模型評估 |
+| `reports/repository_evaluation` | 九模型重建、逐位使用者結果、三模型推薦、候選數量與品質區間 |
+| `reports/service_v12_benchmark` | 服務 1.2 的三模型 HTTP 原始請求與統計 |
 | `reports/service_review_benchmark` | HTTP 請求原始紀錄與效能統計 |
 | `reports/gpu_profile_audit` | MPS 原始計時、模式順序、記憶體及配對吞吐量 |
 | `reports/ddp_cpu_reference` | FP64 訓練的一程序與二程序數值比較 |

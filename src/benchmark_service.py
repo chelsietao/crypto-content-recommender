@@ -22,10 +22,12 @@ import torch
 
 from src.config import PROJECT_ROOT, REPORTS_DIR
 from src.neural import NeuralSystem
-from src.serve_neural import DEFAULT_CHECKPOINT, MODEL_NAMES, RecommendationResponse
+from src.serve_neural import DEFAULT_CHECKPOINT, DEFAULT_TRANSFORMER, RecommendationResponse
+from src.checkpoint_io import verified_checkpoint_hash
+from src.transformer_reranker import TransformerReranker
 
 
-def validate_response(response, expected, user, model, checkpoint_hash, training_cutoff):
+def validate_response(response, expected, user, model, checkpoint_hash, training_cutoff, reranker_hash=None):
     response.raise_for_status()
     if response.status_code != 200:
         raise AssertionError('Unexpected recommendation status')
@@ -33,6 +35,8 @@ def validate_response(response, expected, user, model, checkpoint_hash, training
     if (payload.user_id, payload.model, payload.checkpoint_sha256, payload.training_cutoff) != (
             user, model, checkpoint_hash, training_cutoff):
         raise AssertionError('Response identity or cutoff mismatch')
+    if payload.reranker_checkpoint_sha256 != reranker_hash:
+        raise AssertionError('Response reranker checkpoint mismatch')
     if [row.content_id for row in payload.items] != expected[0]:
         raise AssertionError('Recommendation IDs or ordering mismatch')
     scores = np.array([row.score for row in payload.items])
@@ -42,7 +46,8 @@ def validate_response(response, expected, user, model, checkpoint_hash, training
         raise AssertionError('Recommendation scores mismatch')
 
 
-async def measure(base_url, model, users, expected, checkpoint_hash, training_cutoff, concurrency, count, repetition):
+async def measure(base_url, model, users, expected, checkpoint_hash, training_cutoff, concurrency, count, repetition,
+                  reranker_hash=None):
     limits = httpx.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
     async with httpx.AsyncClient(base_url=base_url, limits=limits, timeout=10, trust_env=False) as client:
         # Warm the connection pool and each worker path outside the measured interval.
@@ -50,7 +55,7 @@ async def measure(base_url, model, users, expected, checkpoint_hash, training_cu
             user = users[worker % len(users)]
             for _ in range(5):
                 response = await client.post('/recommend', json={'user_id': user, 'model': model})
-                validate_response(response, expected[(model, user)], user, model, checkpoint_hash, training_cutoff)
+                validate_response(response, expected[(model, user)], user, model, checkpoint_hash, training_cutoff, reranker_hash)
         await asyncio.gather(*(warm(worker) for worker in range(concurrency)))
         records = []
         async def worker(worker_id):
@@ -62,7 +67,7 @@ async def measure(base_url, model, users, expected, checkpoint_hash, training_cu
                 try:
                     response = await client.post('/recommend', json={'user_id': user, 'model': model})
                     status = response.status_code
-                    validate_response(response, expected[(model, user)], user, model, checkpoint_hash, training_cutoff)
+                    validate_response(response, expected[(model, user)], user, model, checkpoint_hash, training_cutoff, reranker_hash)
                 except (httpx.HTTPError, AssertionError, KeyError, ValueError, TypeError) as exc:
                     error = type(exc).__name__
                 records.append({'model': model, 'concurrency': concurrency, 'repetition': repetition,
@@ -84,17 +89,25 @@ def summarize(records, elapsed_seconds):
 
 
 def run_benchmark(output: Path, checkpoint: Path = DEFAULT_CHECKPOINT, requests: int = 500,
-                  concurrencies=(1, 4, 16), repetitions: int = 3):
+                  concurrencies=(1, 4, 16), repetitions: int = 3,
+                  transformer_checkpoint: Path | None = DEFAULT_TRANSFORMER):
     if requests < 1 or repetitions < 1 or not concurrencies or any(c < 1 or c > requests for c in concurrencies):
         raise ValueError('Requests and repetitions must be positive, with concurrency between 1 and requests')
     output.mkdir(parents=True, exist_ok=True)
     checkpoint = checkpoint.resolve()
-    checkpoint_hash = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    checkpoint_hash = verified_checkpoint_hash(checkpoint)
     torch.set_num_threads(1)
     system = NeuralSystem.load(checkpoint)
+    models = system.recommenders()
+    transformer_hash = None
+    if transformer_checkpoint is not None:
+        transformer_checkpoint = Path(transformer_checkpoint).resolve()
+        transformer_hash = verified_checkpoint_hash(transformer_checkpoint)
+        transformer = TransformerReranker.from_checkpoint(transformer_checkpoint, system, checkpoint_hash)
+        models[transformer.name] = transformer
     users = [*system.users.user_id, 'new-user']
     expected = {}
-    for model, recommender in system.recommenders().items():
+    for model, recommender in models.items():
         for user in users:
             result = recommender.recommend(user)
             expected[(model, user)] = (result.content_id.tolist(), result.score.to_numpy())
@@ -104,6 +117,7 @@ def run_benchmark(output: Path, checkpoint: Path = DEFAULT_CHECKPOINT, requests:
     base_url = f'http://127.0.0.1:{port}'
     command = [sys.executable, '-m', 'src.serve_neural', '--port', str(port),
                '--checkpoint', str(checkpoint), '--torch-threads', '1']
+    command += ['--disable-transformer'] if transformer_checkpoint is None else ['--transformer-checkpoint', str(transformer_checkpoint)]
     all_records, summaries, repeats = [], [], []
     with (output / 'server.log').open('w') as log:
         started = time.perf_counter()
@@ -120,6 +134,8 @@ def run_benchmark(output: Path, checkpoint: Path = DEFAULT_CHECKPOINT, requests:
                             ready = response.json()
                             if ready['pid'] != process.pid or ready['checkpoint_sha256'] != checkpoint_hash:
                                 raise RuntimeError('Readiness identity mismatch')
+                            if ready['transformer_checkpoint_sha256'] != transformer_hash or ready['models'] != list(models):
+                                raise RuntimeError('Readiness model registry mismatch')
                             break
                     except httpx.TransportError:
                         pass
@@ -128,13 +144,14 @@ def run_benchmark(output: Path, checkpoint: Path = DEFAULT_CHECKPOINT, requests:
                     time.sleep(0.05)
             startup_seconds = time.perf_counter() - started
             server = psutil.Process(process.pid)
-            for model in MODEL_NAMES:
+            for model in models:
                 for concurrency in concurrencies:
                     combined, total = [], 0.0
                     rss_before = server.memory_info().rss
                     for repetition in range(repetitions):
                         records, elapsed = asyncio.run(measure(base_url, model, users, expected,
-                            checkpoint_hash, system.reference.isoformat(), concurrency, requests, repetition))
+                            checkpoint_hash, system.reference.isoformat(), concurrency, requests, repetition,
+                            transformer_hash if model == TransformerReranker.name else None))
                         combined.extend(records)
                         total += elapsed
                         repeats.append({'model': model, 'concurrency': concurrency,
@@ -188,11 +205,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, default=REPORTS_DIR / 'service_benchmark')
     parser.add_argument('--checkpoint', type=Path, default=DEFAULT_CHECKPOINT)
+    parser.add_argument('--transformer-checkpoint', type=Path, default=DEFAULT_TRANSFORMER)
+    parser.add_argument('--disable-transformer', action='store_true')
     parser.add_argument('--requests', type=int, default=500)
     parser.add_argument('--concurrency', type=int, nargs='+', default=[1, 4, 16])
     parser.add_argument('--repetitions', type=int, default=3)
     args = parser.parse_args()
-    run_benchmark(args.output, args.checkpoint, args.requests, args.concurrency, args.repetitions)
+    run_benchmark(args.output, args.checkpoint, args.requests, args.concurrency, args.repetitions,
+                  None if args.disable_transformer else args.transformer_checkpoint)
 
 
 if __name__ == '__main__':

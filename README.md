@@ -2,7 +2,9 @@
 
 這個專案以加密貨幣內容推薦為主題，完成合成資料產生、六種推薦基線、PyTorch 雙塔召回與神經排序器、Transformer 內容重排序、離線評估及 Streamlit 展示，並提供 CPU HTTP 推論服務、Apple GPU profiling 與 DDP 訓練驗證。
 
-完整架構、九模型結果、展示與服務涵蓋範圍，以及本次 Transformer 重訓複查，請見 [系統總覽與驗證摘要](README_REPOSITORY_OVERVIEW.md)。
+完整架構、九模型結果、展示與服務涵蓋範圍，以及 Transformer 重訓複查，請見 [系統總覽與驗證摘要](README_REPOSITORY_OVERVIEW.md)。
+
+三項整合改進已接通 V9 HTTP、九模型展示及評估重建，請見 [本次優化說明](README_SYSTEM_INTEGRATION.md)。
 
 ## 資料與評估
 
@@ -26,9 +28,9 @@
 
 ## 展示與推論
 
-[Streamlit 公開展示](https://rkatmcugsybuh4d5cejg6s.streamlit.app/) 提供 V1 至 V6 的互動推薦、工作階段回饋及儀表板，PyTorch 分頁展示 V7 與 V8 的已儲存推薦、訓練曲線與離線指標。
+[Streamlit 公開展示](https://rkatmcugsybuh4d5cejg6s.streamlit.app/) 提供 V1 至 V6 的互動推薦、工作階段回饋及儀表板，`Saved Model Results` 分頁展示九模型指標、候選數量及品質區間，並提供 V7、V8、V9 的已儲存推薦與訓練曲線。
 
-獨立 FastAPI 服務提供 V7 與 V8 的 CPU 推論，實作回應驗證、容量控制及鎖等待期限，HTTP 效能資料保存於 `reports/service_review_benchmark`，啟動與量測方式見 [服務說明](README_INFERENCE_SERVICE_REVIEW.md)。
+獨立 FastAPI 服務 1.2 提供 V7、V8、V9 的 CPU 推論，實作雙 checkpoint 身分驗證、容量控制及鎖等待期限，最新 HTTP 效能資料保存於 `reports/service_v12_benchmark`，啟動與量測方式見 [整合說明](README_SYSTEM_INTEGRATION.md)。
 
 V9 保存 Transformer checkpoint、訓練樣本時間稽核及品質評估，CPU 延遲、吞吐量與資源成本採四回合、八個獨立工作程序完成量測，詳見 [Transformer 重排序](README_TRANSFORMER_RERANKING.md)。
 
@@ -54,6 +56,7 @@ streamlit run app.py
 核對已保存的 Transformer 與 DDP 產出時，使用以下命令，推薦與品質會從 checkpoint 重算，效能統計則由原始量測紀錄重算。
 
 ```bash
+python -m src.evaluate_repository --verify-only
 python -m src.run_transformer --verify-only
 python -m src.validate_distributed --verify-only --output reports/ddp_cpu_reference
 python -m src.validate_distributed --verify-only --output reports/ddp_cpu_validation
@@ -61,10 +64,11 @@ python -m src.validate_distributed --verify-only --output reports/ddp_cpu_valida
 
 ## 驗證與版本文件
 
-本次本機完整測試共 198 項通過，包含 CPU 雙程序 DDP、關閉 CPU fallback 的 MPS 檢查與 Transformer 產出驗證，Transformer 重訓的最大參數差異為 0，記錄見 [複查摘要](reports/TRANSFORMER_AUDIT.json)。
+本次本機完整測試共 214 項通過，涵蓋九模型重建、Streamlit 操作、三模型 HTTP、CPU 雙程序 DDP 與關閉 CPU fallback 的 MPS 檢查，記錄見 [整合驗證](reports/SYSTEM_INTEGRATION_VALIDATION.json)，Transformer 重訓的最大參數差異為 0，記錄見 [重訓摘要](reports/TRANSFORMER_AUDIT.json)。
 
 | 主題 | 文件 |
 |---|---|
+| 三項整合改進 | [服務、展示與評估](README_SYSTEM_INTEGRATION.md) |
 | 全專案範圍與九模型結果 | [系統總覽](README_REPOSITORY_OVERVIEW.md) |
 | 時間切分與六種基線修正 | [系統修正報告](reports/SYSTEM_REVIEW_AND_FIXES.md) |
 | 雙塔與神經排序器 | [PyTorch 實作](README_PYTORCH.md)、[召回優化](README_PYTORCH_REVIEW.md) |

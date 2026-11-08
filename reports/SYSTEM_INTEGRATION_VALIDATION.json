@@ -1,0 +1,36 @@
+{
+  "baseline_commit": "f9a009d4163b07d6556e793800999d399f828ef8",
+  "tests_passed": 214,
+  "new_integration_tests": 16,
+  "service_version": "1.2.0",
+  "http_requests": 1200,
+  "http_errors": 0,
+  "served_models": [
+    "v7_pytorch_two_tower",
+    "v8_pytorch_neural_ranker",
+    "v9_transformer_content_reranker"
+  ],
+  "base_load_count_tested": 1,
+  "shared_base_system_tested": true,
+  "display_reader_imports_torch": false,
+  "streamlit_v9_new_user_tested": true,
+  "evaluated_models": 9,
+  "evaluation_detail_rows": 270,
+  "saved_recommendation_groups": 243,
+  "paired_quality_rows": 18,
+  "unchanged_checkpoint_sha256": {
+    "artifacts/neural/neural_recommender.pt": "9d18da57a128f3370a9b141df0c63d9cfbeadb2118136c40afdb56f504e6516a",
+    "reports/transformer_reranking/transformer.pt": "e646bf249cc0266d8e77caab75bdd0e9b268f9864ae46554d8736b998b9fb370"
+  },
+  "mps_cpu_fallback": false,
+  "ddp_integration_enabled": true,
+  "source_sha256": {
+    "src/checkpoint_io.py": "e437061d687e2c4839eae407fc533758c938e03b464a663de89a278e865b682b",
+    "src/evaluate_repository.py": "b863f302c2d8b806b5cc726751826dc517ee8cc6f6242a92fcfb239157caa064",
+    "src/portfolio_exports.py": "191d5c7d2eccc3ed8b2e5164cd1af95e8ba824316329b2c2fba837d04f70b648",
+    "src/serve_neural.py": "bd5c25a5bd7aed3c9d07bbc01dbd5fa883edfae25e850a2b548e3657b9d403c9",
+    "src/benchmark_service.py": "76c0bf9d0c6f294b11a896e6e7aab91ea49141bdc922886a4ff4cf7c884c3c92",
+    "src/transformer_reranker.py": "8a6beff7fb296404cdf1cc819f8269388d2b6c2341a8d697193e96df9d2316ff",
+    "app.py": "4a59ab0b8a28151ff0a811126a8e0a4824f5c0d2617cf7a1ba7e58f2da0aeb75"
+  }
+}
