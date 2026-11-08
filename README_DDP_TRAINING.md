@@ -2,6 +2,8 @@
 
 本版本將 PyTorch DistributedDataParallel 接入雙塔召回與神經排序器的訓練流程，沿用同一份資料與時間區段，完成本機一程序、二程序的 CPU／Gloo 訓練、checkpoint 重載、推薦及梯度一致性驗證。
 
+完整檔案清單、訓練步驟覆蓋、checkpoint 評估與逾時程序清理的修正，請見 [DDP 驗證優化紀錄](README_DDP_REVIEW.md)，兩份 CPU 報告已更新至包含子目錄 manifest 的格式。
+
 ## 1. 本次完成範圍
 
 | 元件 | 完成內容 |

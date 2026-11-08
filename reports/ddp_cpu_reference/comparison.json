@@ -36,5 +36,6 @@
     }
   ],
   "measurement_scope": "one vs two ranks on the explicitly recorded device type",
-  "gpu_result": false
+  "gpu_result": false,
+  "format_version": 2
 }

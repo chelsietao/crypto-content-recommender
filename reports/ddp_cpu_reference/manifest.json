@@ -1,7 +1,8 @@
 {
-  "comparison.json": "39559bdf461b957418befc4ad09d4f814bb2fbb08e98e8dc4019ebdf774016d6",
+  "comparison.json": "9dc10d9c86156c038448781720a68bdfbf0e0b52323663ebe1d699bd1f419c15",
   "round_0_world_1/communication.csv": "89379d3087253b535683a4714ba20c74eef36a722dd1250913da8d2aba2062b4",
   "round_0_world_1/evaluation_details.csv": "71174a07549e38290609999e271178216da985fb3d6e00e9c09f2b6d886a8ddb",
+  "round_0_world_1/manifest.json": "7a46d6d749295bb0e5955f8012e498d671c23e3ae85f13249410d1dd914ccef7",
   "round_0_world_1/model_metrics.csv": "6dd59441c7dff8ad874e9c2d0134ab709ac4819d2f39fdc24994e68ebc574e42",
   "round_0_world_1/neural_recommender.pt": "28e249eab6d571923d75b344cf87fd72c574458049eff9715f2d82441c17b8a9",
   "round_0_world_1/rank_0.json": "707af691d3a500a6569bc3b5fdee60da957673ec117405c6b14b5325ee05dcd8",
@@ -11,6 +12,7 @@
   "round_0_world_1/training_history.csv": "c584b25a725e27cf3cef5532fb912ba56bda00aabd0411526a15e2bc1f09ed2d",
   "round_0_world_2/communication.csv": "3d9c14db7f065e1f6568b98ea95d069e1ed17b09ed7b13ab650f12f34a7365dc",
   "round_0_world_2/evaluation_details.csv": "71174a07549e38290609999e271178216da985fb3d6e00e9c09f2b6d886a8ddb",
+  "round_0_world_2/manifest.json": "9b19a979a894e75bad3192576314b4b425c13dc61de6cb5a1db27b17bd9f84d1",
   "round_0_world_2/model_metrics.csv": "6dd59441c7dff8ad874e9c2d0134ab709ac4819d2f39fdc24994e68ebc574e42",
   "round_0_world_2/neural_recommender.pt": "9c44e57ab96f7853126c459e1fac65e995603c1cba46d65a2b1622740ff50d71",
   "round_0_world_2/rank_0.json": "eb5b50610f7ea6d65011d364dba2b5005c29110889b2b5dd5806d3fa65e9ae4f",

@@ -1,0 +1,56 @@
+{
+  "scope": "DDP artifact verification and launcher cleanup",
+  "training_device": "cpu",
+  "backend": "gloo",
+  "gpu_training_result": false,
+  "tests": {
+    "passed": 180,
+    "new_ddp_artifact_tests": 25,
+    "mps_fallback_enabled": false,
+    "ddp_integration_enabled": true,
+    "timeout_worker_sessions": [
+      "inherited",
+      "independent"
+    ]
+  },
+  "reports": {
+    "ddp_cpu_reference": {
+      "device": "cpu",
+      "gpu_result": false,
+      "repetitions": 1,
+      "files": 23,
+      "verified_global_steps": 1440
+    },
+    "ddp_cpu_validation": {
+      "device": "cpu",
+      "gpu_result": false,
+      "repetitions": 1,
+      "files": 23,
+      "verified_global_steps": 1440
+    }
+  },
+  "checkpoints": {
+    "reports/ddp_cpu_reference/round_0_world_1/neural_recommender.pt": {
+      "sha256": "28e249eab6d571923d75b344cf87fd72c574458049eff9715f2d82441c17b8a9",
+      "unchanged_from_training_commit": true
+    },
+    "reports/ddp_cpu_reference/round_0_world_2/neural_recommender.pt": {
+      "sha256": "9c44e57ab96f7853126c459e1fac65e995603c1cba46d65a2b1622740ff50d71",
+      "unchanged_from_training_commit": true
+    },
+    "reports/ddp_cpu_validation/round_0_world_1/neural_recommender.pt": {
+      "sha256": "73a9af28a1a5d962414bfbde8b9206929c37d0c9bf8e14f7d1f5dd4399791ac4",
+      "unchanged_from_training_commit": true
+    },
+    "reports/ddp_cpu_validation/round_0_world_2/neural_recommender.pt": {
+      "sha256": "523354349e1e0d13271f0cb8a41996d833c5a3299e5ff835e5b248f9f1b358a0",
+      "unchanged_from_training_commit": true
+    }
+  },
+  "source_sha256": {
+    "src/ddp_artifacts.py": "a4fa9ca90235369f793828ca69b2cd98e33d0f3005153c6df78014fb32b9a8ba",
+    "src/process_runner.py": "f7dc10c48415e88c80cbd80b94acd195ac5c26449419ff763d9e221b9fba22cd",
+    "src/validate_distributed.py": "8887229f120f3ed4bb7a1615c2f09e55a31b8607f00033efdfeaaf4430ec385d",
+    "tests/test_ddp_artifacts.py": "b53e14744555faa62617f698e1cfae96b5160e91a8f27e5ae4cb102b6910e3b9"
+  }
+}

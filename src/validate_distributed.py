@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import socket
-import subprocess
 import sys
 from pathlib import Path
 
@@ -16,6 +14,8 @@ import torch
 
 from src.config import PROJECT_ROOT, REPORTS_DIR
 from src.neural import NeuralSystem
+from src.ddp_artifacts import write_manifest, verify_all
+from src.process_runner import run_training_process
 
 
 def compare_runs(first: Path, second: Path, comparison='numerical'):
@@ -84,72 +84,26 @@ def launch(output: Path, device='cpu', epochs=30, global_batch_size=128, repetit
                 f'--nproc-per-node={world_size}', '-m', 'src.train_distributed', '--device', device,
                 '--precision', precision, '--epochs', str(epochs), '--global-batch-size', str(global_batch_size), '--output', str(folder.resolve())]
             with (folder / 'launcher.log').open('w') as log:
-                completed = subprocess.run(command, cwd=PROJECT_ROOT, env=env, stdout=log, stderr=log, timeout=300)
-            if completed.returncode:
+                returncode = run_training_process(command, PROJECT_ROOT, env, log, timeout=300)
+            if returncode:
                 raise RuntimeError(f'Distributed run failed, see {folder / "launcher.log"}')
             paths[world_size] = folder
         measured = compare_runs(paths[1], paths[2], comparison)
         measured['repetition'] = repetition
         records.append(measured)
         print(json.dumps(measured), flush=True)
-    result = {'device': device, 'training_precision': precision, 'comparison': comparison, 'epochs': epochs, 'global_batch_size': global_batch_size,
+    result = {'format_version': 2, 'device': device, 'training_precision': precision, 'comparison': comparison, 'epochs': epochs, 'global_batch_size': global_batch_size,
         'repetitions': repetitions, 'comparisons': records,
         'measurement_scope': 'one vs two ranks on the explicitly recorded device type',
         'gpu_result': device == 'cuda'}
     (output / 'comparison.json').write_text(json.dumps(result, indent=2) + '\n')
-    hashes = {str(path.relative_to(output)): hashlib.sha256(path.read_bytes()).hexdigest()
-              for path in sorted(output.rglob('*')) if path.is_file() and path.name not in ('manifest.json', 'launcher.log')}
-    (output / 'manifest.json').write_text(json.dumps(hashes, indent=2) + '\n')
+    write_manifest(output)
     verify_exports(output)
     return result
 
 
 def verify_exports(output):
-    output = Path(output).resolve()
-    hashes = json.loads((output / 'manifest.json').read_text())
-    if not isinstance(hashes, dict) or 'comparison.json' not in hashes:
-        raise ValueError('Missing distributed comparison manifest')
-    for name, digest in hashes.items():
-        relative = Path(name)
-        if relative.is_absolute() or '..' in relative.parts:
-            raise ValueError('Invalid distributed artifact path')
-        if hashlib.sha256((output / relative).read_bytes()).hexdigest() != digest:
-            raise ValueError(f'Distributed artifact hash mismatch: {name}')
-    recorded = json.loads((output / 'comparison.json').read_text())
-    if recorded['gpu_result'] != (recorded['device'] == 'cuda'):
-        raise ValueError('Distributed report device label is inconsistent')
-    if len(recorded['comparisons']) != recorded['repetitions']:
-        raise ValueError('Distributed comparison round coverage is incomplete')
-    for rep, expected in enumerate(recorded['comparisons']):
-        folders = [output / f'round_{rep}_world_{world}' for world in (1, 2)]
-        measured = compare_runs(*folders, comparison=recorded['comparison'])
-        measured['repetition'] = rep
-        if measured != expected:
-            raise ValueError('Distributed comparison differs from checkpoint outputs')
-        for folder, world in zip(folders, (1, 2)):
-            summary = json.loads((folder / 'results.json').read_text())
-            if summary['device'] != recorded['device'] or summary['world_size'] != world:
-                raise ValueError('Distributed rank/device identity mismatch')
-            frames = []
-            for rank in range(world):
-                rank_info = json.loads((folder / f'rank_{rank}.json').read_text())
-                if rank_info['rank'] != rank or rank_info['world_size'] != world:
-                    raise ValueError('Distributed rank inventory is incomplete')
-                frame = pd.read_csv(folder / f'steps_rank_{rank}.csv')
-                if not frame['rank'].eq(rank).all():
-                    raise ValueError('Step records have the wrong rank')
-                frames.append(frame)
-            steps = pd.concat(frames)
-            keys = ['stage', 'epoch', 'batch_index']
-            if steps.duplicated(keys + ['rank']).any():
-                raise ValueError('Duplicated distributed batch records')
-            for _, batch in steps.groupby(keys):
-                if len(batch) != world or batch.global_examples.nunique() != 1:
-                    raise ValueError('Distributed batch rank coverage is incomplete')
-                if batch.local_examples.sum() != batch.global_examples.iloc[0]:
-                    raise ValueError('Global batch samples were duplicated or dropped')
-    return {'device': recorded['device'], 'gpu_result': recorded['gpu_result'],
-            'repetitions': recorded['repetitions'], 'files': len(hashes)}
+    return verify_all(Path(output), compare_runs)
 
 
 def main():
