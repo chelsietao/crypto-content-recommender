@@ -12,6 +12,8 @@ PyTorch 訓練、checkpoint 與推薦指標的實作說明，請見 [PyTorch 雙
 Apple GPU 的 MPS profiling 與排序優化，請見 [GPU profiling 與優化](README_GPU_PROFILING.md)，候選上限相容性請見 [GPU 版本修正紀錄](README_GPU_PROFILING_REVIEW.md)，六回合輪替與產出驗證請見 [GPU 量測方法更新](README_GPU_MEASUREMENT_AUDIT.md)。
 
 DDP 訓練、全域 batch 與 CPU 一致性驗證，請見 [分散式訓練實作](README_DDP_TRAINING.md)，完整步驟、checkpoint 評估與程序清理修正請見 [DDP 驗證優化紀錄](README_DDP_REVIEW.md)。
+
+訓練曲線與 checkpoint 內部紀錄的逐筆核對，請見 [DDP 訓練曲線驗證](README_DDP_HISTORY_REVIEW.md)。
 ## 資料與流程
 
 資料包含 240 筆內容、80 位合成使用者與 8,564 筆互動事件，互動類型包括曝光、點擊、喜歡、收藏與隱藏，使用固定亂數種子產生。

@@ -140,6 +140,17 @@ def test_export_binding_rejects_inconsistent_evidence_with_valid_hashes(report, 
         verify_exports(report)
 
 
+@pytest.mark.parametrize('loss_column', ['train_loss', 'validation_loss'])
+def test_training_curve_must_match_checkpoint_even_with_valid_hashes(report, loss_column):
+    path = report / 'round_0_world_2' / 'training_history.csv'
+    frame = pd.read_csv(path)
+    frame.loc[0, loss_column] += 0.25
+    frame.to_csv(path, index=False)
+    refresh(report)
+    with pytest.raises(ValueError, match='Training history differs from the checkpoint payload'):
+        verify_exports(report)
+
+
 @pytest.mark.parametrize('separate_session', [False, True])
 def test_timeout_reaps_launcher_and_worker(tmp_path, separate_session):
     marker = tmp_path / 'worker.pid'

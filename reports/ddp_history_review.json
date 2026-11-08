@@ -1,0 +1,72 @@
+{
+  "reports": {
+    "ddp_cpu_reference": {
+      "device": "cpu",
+      "gpu_result": false,
+      "repetitions": 1,
+      "files": 23,
+      "verified_global_steps": 1440
+    },
+    "ddp_cpu_validation": {
+      "device": "cpu",
+      "gpu_result": false,
+      "repetitions": 1,
+      "files": 23,
+      "verified_global_steps": 1440
+    }
+  },
+  "unchanged_training_artifacts": [
+    {
+      "path": "reports/ddp_cpu_reference/round_0_world_1/neural_recommender.pt",
+      "sha256": "28e249eab6d571923d75b344cf87fd72c574458049eff9715f2d82441c17b8a9"
+    },
+    {
+      "path": "reports/ddp_cpu_reference/round_0_world_2/neural_recommender.pt",
+      "sha256": "9c44e57ab96f7853126c459e1fac65e995603c1cba46d65a2b1622740ff50d71"
+    },
+    {
+      "path": "reports/ddp_cpu_validation/round_0_world_1/neural_recommender.pt",
+      "sha256": "73a9af28a1a5d962414bfbde8b9206929c37d0c9bf8e14f7d1f5dd4399791ac4"
+    },
+    {
+      "path": "reports/ddp_cpu_validation/round_0_world_2/neural_recommender.pt",
+      "sha256": "523354349e1e0d13271f0cb8a41996d833c5a3299e5ff835e5b248f9f1b358a0"
+    },
+    {
+      "path": "reports/ddp_cpu_reference/round_0_world_1/training_history.csv",
+      "sha256": "c584b25a725e27cf3cef5532fb912ba56bda00aabd0411526a15e2bc1f09ed2d"
+    },
+    {
+      "path": "reports/ddp_cpu_reference/round_0_world_2/training_history.csv",
+      "sha256": "f4aea9d445f106cd34d9f7361ff0c8b7a868e72b95d3d6d471a4e5e3c3f7d320"
+    },
+    {
+      "path": "reports/ddp_cpu_validation/round_0_world_1/training_history.csv",
+      "sha256": "3aca512a1ae10be773cd2e15a614d05db9d87dffecedcbb0153a489cfe0bf9d3"
+    },
+    {
+      "path": "reports/ddp_cpu_validation/round_0_world_2/training_history.csv",
+      "sha256": "9a838f5d9f5dc8ecf0f1e8b134cd7f59f03923f80b0c71bf4bd242aee8d1055e"
+    }
+  ],
+  "scope": "DDP training curve and checkpoint history consistency",
+  "baseline_commit": "d456d650619c20f3258a0ed43a1a779bf03f7621",
+  "reproduction": {
+    "modified_field": "train_loss",
+    "increment": 0.25,
+    "hashes_rebuilt": true,
+    "baseline_accepted": true
+  },
+  "verification": {
+    "absolute_loss_tolerance": 1e-12,
+    "relative_loss_tolerance": 0,
+    "tests_passed": 182,
+    "new_tests": 2,
+    "ddp_integration_enabled": true,
+    "mps_fallback_enabled": false
+  },
+  "source_sha256": {
+    "src/ddp_artifacts.py": "4233accff2035ef3cb3c87e2c16caa5cbd562d793fe0ddec9e69884bd994b900",
+    "tests/test_ddp_artifacts.py": "447c984c17ab7ec423eca109edd75df14ab18c061e8b772e2a595f1115811c76"
+  }
+}

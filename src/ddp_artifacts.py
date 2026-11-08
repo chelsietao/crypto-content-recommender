@@ -189,6 +189,13 @@ def verify_predictions(folder, summary):
     if (system.config.epochs != summary['epochs'] or system.config.batch_size != summary['global_batch_size']
             or system.training_summary != summary['training']):
         raise ValueError('Training summary differs from the checkpoint payload')
+    try:
+        pd.testing.assert_frame_equal(
+            pd.read_csv(folder / 'training_history.csv').sort_values(['stage', 'epoch']).reset_index(drop=True),
+            pd.DataFrame(system.history).sort_values(['stage', 'epoch']).reset_index(drop=True),
+            check_dtype=False, check_exact=False, atol=1e-12, rtol=0)
+    except AssertionError as exc:
+        raise ValueError('Training history differs from the checkpoint payload') from exc
     bundle = build_dataset(save=False)
     split = chronological_holdout(bundle.interactions, bundle.contents)
     eligible_users = bundle.users.loc[bundle.users.created_at <= split.train.timestamp.max()]
