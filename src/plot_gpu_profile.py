@@ -1,4 +1,5 @@
 """Render measured throughput from the GPU profiling CSV."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -43,4 +44,7 @@ def plot(output: Path = REPORTS_DIR / 'gpu_profile'):
 
 
 if __name__ == '__main__':
-    plot()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input', type=Path, default=REPORTS_DIR / 'gpu_profile')
+    args = parser.parse_args()
+    plot(args.input)

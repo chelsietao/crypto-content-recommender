@@ -8,6 +8,7 @@ import numpy as np
 import torch
 
 from src.config import TOPICS, COINS
+from src.recommenders import validate_k
 from src.neural import NeuralSystem, ranking_features, TwoTowerRecommender, NeuralRankingRecommender
 
 MODEL_NAMES = (TwoTowerRecommender.name, NeuralRankingRecommender.name)
@@ -100,8 +101,8 @@ class BatchedNeuralInference:
     def forward(self, batch: PreparedBatch, model: str, k: int = 10, optimized=True):
         if model not in MODEL_NAMES:
             raise ValueError('Unknown neural model')
-        if isinstance(k, bool) or not isinstance(k, int) or not 0 <= k <= self.candidate_count:
-            raise ValueError('k must be an integer within the candidate count')
+        validate_k(k)
+        k = min(k, self.candidate_count)
         users = self.encode(batch)
         candidates, scores = self.retrieve(batch, users)
         if model == MODEL_NAMES[1]:
@@ -110,5 +111,13 @@ class BatchedNeuralInference:
 
     def decode(self, indices, scores):
         indices, scores = indices.cpu().numpy(), scores.float().cpu().numpy()
+        if indices.ndim != 2 or scores.ndim != 2 or indices.shape != scores.shape:
+            raise ValueError('Decoded indices and scores must have the same two-dimensional shape')
+        if not np.issubdtype(indices.dtype, np.integer):
+            raise ValueError('Decoded content indices must be integers')
+        if (indices < 0).any() or (indices >= len(self.content_ids)).any():
+            raise ValueError('Decoded content index is outside the catalog')
+        if np.isnan(scores).any() or np.isposinf(scores).any():
+            raise ValueError('Decoded scores must be finite or negative-infinity padding')
         return [[(self.content_ids[int(item)], float(score)) for item, score in zip(ids, values)
                  if np.isfinite(score)] for ids, values in zip(indices, scores)]

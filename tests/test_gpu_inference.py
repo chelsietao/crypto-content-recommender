@@ -62,7 +62,7 @@ def test_batch_engine_rejects_invalid_inputs(system):
     with pytest.raises(ValueError):
         engine.prepare([])
     batch = engine.prepare(['U0001'])
-    for k in [-1, True, 51]:
+    for k in [-1, True, 1.5]:
         with pytest.raises(ValueError):
             engine.forward(batch, MODEL_NAMES[0], k=k)
     with pytest.raises(ValueError):
@@ -111,3 +111,84 @@ def test_precision_audit_counts_reference_candidates_by_id(system):
         rows = validate_precision(engine, ['U0001'], model, references)
         assert rows[0]['exact_id_order']
         assert rows[0]['items_outside_cpu_candidates'] == 0
+
+
+@pytest.mark.parametrize('candidate_count', [1, 5])
+@pytest.mark.parametrize('model', MODEL_NAMES)
+def test_small_candidate_limits_and_large_k_match_cpu(system, candidate_count, model):
+    from dataclasses import replace
+    from unittest.mock import patch
+    with patch.object(system, 'config', replace(system.config, candidate_count=candidate_count)):
+        engine = BatchedNeuralInference(system)
+        batch = engine.prepare(['U0001'])
+        for k in [10, 100, np.int64(10)]:
+            actual = engine.decode(*engine.forward(batch, model, k=k))[0]
+            expected = system.recommenders()[model].recommend('U0001', k=k)
+            assert len(actual) == candidate_count
+            assert [row[0] for row in actual] == expected.content_id.tolist()
+            np.testing.assert_allclose([row[1] for row in actual], expected.score, atol=1e-6, rtol=1e-5)
+
+
+@pytest.mark.parametrize('mutation', ['wrong_shape', 'negative_index', 'outside_index', 'fractional_index', 'nan_score', 'positive_inf'])
+def test_decode_rejects_malformed_result_tensors(system, mutation):
+    engine = BatchedNeuralInference(system)
+    indices, scores = engine.forward(engine.prepare(['U0001']), MODEL_NAMES[0])
+    indices, scores = indices.clone(), scores.clone()
+    if mutation == 'wrong_shape':
+        scores = scores[:, :-1]
+    elif mutation == 'negative_index':
+        indices[0, 0] = -1
+    elif mutation == 'outside_index':
+        indices[0, 0] = len(engine.content_ids)
+    elif mutation == 'fractional_index':
+        indices = indices.float()
+    elif mutation == 'nan_score':
+        scores[0, 0] = float('nan')
+    else:
+        scores[0, 0] = float('inf')
+    with pytest.raises(ValueError):
+        engine.decode(indices, scores)
+
+
+def audit_fixture(system):
+    engine = BatchedNeuralInference(system)
+    users = ['U0001', 'U0042']
+    model = MODEL_NAMES[0]
+    references = {}
+    for user in users:
+        result = system.recommenders()[model].recommend(user)
+        references[(model, user)] = (result.content_id.tolist(), dict(zip(result.content_id, result.score)))
+    return engine, users, model, references
+
+
+@pytest.mark.parametrize('mutation', ['missing_user', 'missing_item', 'duplicate_item', 'wrong_precision', 'wrong_device'])
+def test_precision_audit_rejects_incomplete_and_mislabeled_results(system, mutation):
+    from types import SimpleNamespace
+    from src.profile_gpu import audit_result
+    engine, users, model, references = audit_fixture(system)
+    indices, scores = engine.forward(engine.prepare(users), model)
+    indices, scores = indices.clone(), scores.clone()
+    if mutation == 'missing_user':
+        indices, scores = indices[:1], scores[:1]
+    elif mutation == 'missing_item':
+        indices, scores = indices[:, :-1], scores[:, :-1]
+    elif mutation == 'duplicate_item':
+        indices[0, 1] = indices[0, 0]
+    elif mutation == 'wrong_precision':
+        scores = scores.double()
+    else:
+        engine = SimpleNamespace(device=torch.device('cuda'), dtype=engine.dtype, decode=engine.decode)
+    with pytest.raises(ValueError):
+        audit_result(engine, users, model, references, (indices, scores))
+
+
+@pytest.mark.parametrize('mode', ['per_user_loop', 'batched_baseline', 'batched'])
+def test_every_timed_mode_has_complete_fp32_audit(system, mode):
+    from src.profile_gpu import validate_variant, require_fp32_equivalence
+    engine, users, model, references = audit_fixture(system)
+    rows = validate_variant(engine, engine.prepare(users), users, model, mode, references)
+    assert len(rows) == len(users)
+    assert [row['request_index'] for row in rows] == [0, 1]
+    assert all(row['mode'] == mode and row['batch_size'] == 2 for row in rows)
+    assert all(row['common_score_items'] == 10 for row in rows)
+    require_fp32_equivalence(rows)

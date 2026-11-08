@@ -100,19 +100,50 @@ def stage_probe(engine, batch, model, iterations, optimized=True):
     return records, samples
 
 
-def validate_precision(engine, user_ids, model, references):
-    rows = engine.decode(*engine.forward(engine.prepare(user_ids), model))
+def audit_result(engine, user_ids, model, references, result):
+    if any(value.device.type != engine.device.type for value in result):
+        raise ValueError('Inference result is on the wrong device')
+    if result[1].dtype != engine.dtype:
+        raise ValueError('Inference scores have the wrong precision')
+    rows = engine.decode(*result)
+    if len(rows) != len(user_ids):
+        raise ValueError('Inference result must contain one row for every requested user')
     records = []
     for user, actual in zip(user_ids, rows):
         expected_ids, reference_scores = references[(model, user)]
         actual_ids = [item for item, _ in actual]
+        if len(actual_ids) != len(expected_ids):
+            raise ValueError('Inference result has an unexpected recommendation count')
+        if len(set(actual_ids)) != len(actual_ids):
+            raise ValueError('Inference result contains duplicate content IDs')
         errors = [abs(score - reference_scores[item]) for item, score in actual if item in reference_scores]
         records.append({'device': engine.device.type, 'precision': str(engine.dtype).split('.')[-1],
             'model': model, 'user_id': user, 'exact_id_order': actual_ids == expected_ids,
             'top10_overlap': len(set(actual_ids) & set(expected_ids)) / max(len(expected_ids), 1),
-            'max_common_score_error': max(errors, default=0),
+            'common_score_items': len(errors),
+            'max_common_score_error': max(errors) if errors else (0.0 if not expected_ids else float('nan')),
             'items_outside_cpu_candidates': sum(item not in reference_scores for item, _ in actual)})
     return records
+
+
+def validate_precision(engine, user_ids, model, references):
+    return audit_result(engine, user_ids, model, references,
+                        engine.forward(engine.prepare(user_ids), model))
+
+
+def validate_variant(engine, batch, user_ids, model, mode, references):
+    records = audit_result(engine, user_ids, model, references, execute(engine, batch, model, mode))
+    for index, row in enumerate(records):
+        row.update({'mode': mode, 'batch_size': len(user_ids), 'request_index': index})
+    return records
+
+
+def require_fp32_equivalence(records):
+    fp32 = pd.DataFrame(records)
+    fp32 = fp32.loc[fp32.precision == 'float32']
+    if (fp32.empty or not fp32.exact_id_order.all() or fp32.max_common_score_error.isna().any()
+            or (fp32.max_common_score_error > 1e-5).any()):
+        raise AssertionError('FP32 batched inference differs from checkpoint recommendations')
 
 
 def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetitions=3):
@@ -136,14 +167,18 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
             all_scores = recommender.score_all(user)
             references[(model, user)] = (expected.content_id.tolist(),
                 {content: float(score) for content, score in zip(system.encoder.content_ids, all_scores) if np.isfinite(score)})
-    records, validation, memory, transfers = [], [], [], []
+    records, validation, memory, transfers, variant_validation = [], [], [], [], []
     # CPU vectorized FP32 is measured on the same inputs as a hardware reference.
     cpu = BatchedNeuralInference(system)
     for model in MODEL_NAMES:
         validation.extend(validate_precision(cpu, user_ids, model, references))
         for size in batch_sizes:
             users = [user_ids[index % len(user_ids)] for index in range(size)]
-            measured, _ = time_variant(cpu, cpu.prepare(users), model, 'batched', iterations, repetitions)
+            batch = cpu.prepare(users)
+            checked = validate_variant(cpu, batch, users, model, 'batched', references)
+            require_fp32_equivalence(checked)
+            variant_validation.extend(checked)
+            measured, _ = time_variant(cpu, batch, model, 'batched', iterations, repetitions)
             records.extend(measured)
     del cpu
     for dtype in (torch.float32, torch.float16):
@@ -158,6 +193,10 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
                 transfers.append({'precision': str(dtype).split('.')[-1], 'model': model, 'batch_size': size,
                     'prepare_and_transfer_ms': (time.perf_counter_ns() - started) / 1e6})
                 for mode in ('per_user_loop', 'batched_baseline', 'batched'):
+                    checked = validate_variant(engine, batch, users, model, mode, references)
+                    if dtype == torch.float32:
+                        require_fp32_equivalence(checked)
+                    variant_validation.extend(checked)
                     measured, samples = time_variant(engine, batch, model, mode, iterations, repetitions)
                     records.extend(measured)
                     memory.extend({'precision': str(dtype).split('.')[-1], 'model': model,
@@ -213,9 +252,8 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
             'batch_size': int(size), 'samples': len(group), 'p50_batch_ms': p50, 'p95_batch_ms': p95,
             'requests_per_second': int(size) * len(group) * 1000 / elapsed.sum()})
     validation_frame = pd.DataFrame(validation)
-    fp32 = validation_frame.loc[validation_frame.precision == 'float32']
-    if not fp32.exact_id_order.all() or fp32.max_common_score_error.max() > 1e-5:
-        raise AssertionError('FP32 batched inference differs from checkpoint recommendations')
+    require_fp32_equivalence(validation)
+    require_fp32_equivalence(variant_validation)
     metadata = {'measured_at_utc': datetime.now(timezone.utc).isoformat(),
         'device': 'Apple GPU via MPS', 'soc': subprocess.check_output(
             ['sysctl', '-n', 'machdep.cpu.brand_string'], text=True).strip(),
@@ -224,6 +262,8 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
         'mps_cpu_fallback': False, 'checkpoint_sha256': hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
         'iterations': iterations, 'repetitions': repetitions, 'batch_sizes': list(batch_sizes),
         'warmup_batches': 2, 'validation_users': len(user_ids),
+        'precision_validation_rows': len(validation), 'variant_validation_rows': len(variant_validation),
+        'timed_variants_validated': len(summary),
         'timing_scope': 'prepared device inputs through GPU-resident top10 outputs, synchronized before and after each sample',
         'stage_timing_scope': 'host dispatch plus GPU completion, with a barrier per stage, separate from throughput samples',
         'trace_scope': 'CPU dispatch operators, not a GPU kernel timeline',
@@ -235,12 +275,13 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
                           for name in ('gpu_inference.py', 'profile_gpu.py', 'neural.py')},
         'summary': summary}
     for name, data in [('timings.csv', frame), ('summary.csv', pd.DataFrame(summary)),
-                       ('precision_validation.csv', validation_frame), ('stages.csv', pd.DataFrame(stages)),
+                       ('precision_validation.csv', validation_frame), ('variant_validation.csv', pd.DataFrame(variant_validation)),
+                       ('stages.csv', pd.DataFrame(stages)),
                        ('memory_samples.csv', pd.DataFrame(memory)), ('input_preparation.csv', pd.DataFrame(transfers)),
                        ('cpu_operators.csv', pd.DataFrame(operators))]:
         data.to_csv(output / name, index=False)
     (output / 'results.json').write_text(json.dumps(metadata, indent=2, allow_nan=False) + '\n')
-    names = ['timings.csv', 'summary.csv', 'precision_validation.csv', 'stages.csv',
+    names = ['timings.csv', 'summary.csv', 'precision_validation.csv', 'variant_validation.csv', 'stages.csv',
              'memory_samples.csv', 'input_preparation.csv', 'cpu_operators.csv', 'cpu_dispatch_trace.json', 'sort_calls.csv', 'results.json']
     (output / 'manifest.json').write_text(json.dumps({name: hashlib.sha256((output / name).read_bytes()).hexdigest()
         for name in names}, indent=2) + '\n')

@@ -1,0 +1,17 @@
+precision,model,batch_size,prepare_and_transfer_ms
+float32,v7_pytorch_two_tower,1,0.488875
+float32,v7_pytorch_two_tower,8,0.600125
+float32,v7_pytorch_two_tower,32,0.943292
+float32,v7_pytorch_two_tower,128,2.362291
+float32,v8_pytorch_neural_ranker,1,1.711833
+float32,v8_pytorch_neural_ranker,8,0.523667
+float32,v8_pytorch_neural_ranker,32,0.912375
+float32,v8_pytorch_neural_ranker,128,1.658042
+float16,v7_pytorch_two_tower,1,0.378125
+float16,v7_pytorch_two_tower,8,0.583708
+float16,v7_pytorch_two_tower,32,0.798209
+float16,v7_pytorch_two_tower,128,1.601583
+float16,v8_pytorch_neural_ranker,1,0.474459
+float16,v8_pytorch_neural_ranker,8,0.544084
+float16,v8_pytorch_neural_ranker,32,0.930375
+float16,v8_pytorch_neural_ranker,128,1.880916
