@@ -1,0 +1,15 @@
+model,variant,stage,operator,calls
+v7_pytorch_two_tower,baseline,retrieval,aten::argsort,1
+v7_pytorch_two_tower,baseline,retrieval,aten::sort,1
+v7_pytorch_two_tower,baseline,final_sort,aten::argsort,2
+v7_pytorch_two_tower,baseline,final_sort,aten::sort,2
+v7_pytorch_two_tower,optimized,retrieval,aten::argsort,1
+v7_pytorch_two_tower,optimized,retrieval,aten::sort,1
+v8_pytorch_neural_ranker,baseline,retrieval,aten::argsort,1
+v8_pytorch_neural_ranker,baseline,retrieval,aten::sort,1
+v8_pytorch_neural_ranker,baseline,final_sort,aten::argsort,2
+v8_pytorch_neural_ranker,baseline,final_sort,aten::sort,2
+v8_pytorch_neural_ranker,optimized,retrieval,aten::argsort,1
+v8_pytorch_neural_ranker,optimized,retrieval,aten::sort,1
+v8_pytorch_neural_ranker,optimized,final_sort,aten::argsort,1
+v8_pytorch_neural_ranker,optimized,final_sort,aten::sort,1

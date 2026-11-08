@@ -1,0 +1,16 @@
+{
+  "timings.csv": "d78b0b8c03d1dd942e2c7ec0433ab7752caa0db84a3c3d4ea2a09bed4aac356f",
+  "summary.csv": "75efaba8b0bc1699100c95afcc36c2cc83985e6fc42cd680e3b6ace0329e19ff",
+  "precision_validation.csv": "4afa10c7b8f3eb89097915aaaae8afa10d83a8908cb9b3e17cef5d898f8322aa",
+  "variant_validation.csv": "830c9a2c701cc58d09d02293a31c9a2dbee683257740436ee5fa116a26a04ff4",
+  "stages.csv": "b4d5ce6e2b4128bed5f0a90033a754a8422a07a3fd52edef038479e218cee2c3",
+  "memory_samples.csv": "06f517592de070c7654ab1a039e6687dfaf1b8ea05ac51edc64ef3c76e00a9e2",
+  "input_preparation.csv": "2b0220ee5d41e55dfa95ee7cabb9f5efe1f76b5686c66e230b28ce7eb3be3684",
+  "cpu_operators.csv": "752432273503d3017cd5464b90ee4e9aa0c73b4cddf22a66396055c2f6ef754f",
+  "cpu_dispatch_trace.json": "7db6d8efda5c729a09d0f72ea79ea21b1e589ac674149a116a4a3624691cf154",
+  "sort_calls.csv": "e864947be634ffca3632cdbfa76465c73362e2d01bd80f66452780b08d3ea8e4",
+  "mode_schedule.csv": "e063bcdd7b505ba682d64bda28ad0e2ee7cccda9ecd4aae7cce5a1e9b0c9b391",
+  "paired_comparison.csv": "def2db3df101c427024129ead230866005d29567d4fed0e872ba4b829398f511",
+  "results.json": "c411a93f29f25b3a4535ef578d84e0d0072cdfe50e3a55878a9755e2df0e22a3",
+  "throughput.png": "8e5035d16b790d4d0f3d5f3cffef18610e7d3d6d5a1299b78b326fb0bb7afa03"
+}

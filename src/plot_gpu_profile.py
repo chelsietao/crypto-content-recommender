@@ -8,10 +8,12 @@ import pandas as pd
 from src.analytics import plt
 from src.config import REPORTS_DIR
 from src.gpu_inference import MODEL_NAMES
+from src.gpu_report import verify_report
 
 
 def plot(output: Path = REPORTS_DIR / 'gpu_profile'):
     output = Path(output)
+    verify_report(output)
     frame = pd.read_csv(output / 'summary.csv')
     figure, axes = plt.subplots(1, 2, figsize=(12, 4.5))
     paths = [('cpu', 'float32', 'batched', 'CPU FP32 batch'),

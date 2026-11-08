@@ -9,7 +9,7 @@ PyTorch 訓練、checkpoint 與推薦指標的實作說明，請見 [PyTorch 雙
 獨立 HTTP 推論與效能量測，請見 [推論服務與效能測試](README_INFERENCE_SERVICE.md)，服務 1.1 的容量控制、逾時與嚴格驗證請見 [服務優化紀錄](README_INFERENCE_SERVICE_REVIEW.md)。
 
 
-Apple GPU 的 MPS profiling 與排序優化，請見 [GPU profiling 與優化](README_GPU_PROFILING.md)，候選上限相容性與完整量測稽核請見 [GPU 版本修正紀錄](README_GPU_PROFILING_REVIEW.md)。
+Apple GPU 的 MPS profiling 與排序優化，請見 [GPU profiling 與優化](README_GPU_PROFILING.md)，候選上限相容性請見 [GPU 版本修正紀錄](README_GPU_PROFILING_REVIEW.md)，六回合輪替與產出驗證請見 [GPU 量測方法更新](README_GPU_MEASUREMENT_AUDIT.md)。
 ## 資料與流程
 
 資料包含 240 筆內容、80 位合成使用者與 8,564 筆互動事件，互動類型包括曝光、點擊、喜歡、收藏與隱藏，使用固定亂數種子產生。

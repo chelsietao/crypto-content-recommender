@@ -21,6 +21,7 @@ import torch
 from src.config import ARTIFACTS_DIR, PROJECT_ROOT, REPORTS_DIR
 from src.gpu_inference import BatchedNeuralInference, MODEL_NAMES
 from src.neural import NeuralSystem
+from src.gpu_report import MODES, paired_comparisons, summarize_timings, verify_report
 
 
 def synchronize(device):
@@ -42,8 +43,8 @@ def execute(engine, batch, model, mode):
     return tuple(torch.cat([row[index] for row in rows], dim=0) for index in (0, 1))
 
 
-def time_variant(engine, batch, model, mode, iterations, repetitions):
-    for _ in range(2):
+def time_variant(engine, batch, model, mode, iterations, repetitions, warmup=2, repetition_start=0, order_position=0):
+    for _ in range(warmup):
         execute(engine, batch, model, mode)
     synchronize(engine.device.type)
     records = []
@@ -57,11 +58,44 @@ def time_variant(engine, batch, model, mode, iterations, repetitions):
             elapsed_ms = (time.perf_counter_ns() - started) / 1e6
             records.append({'device': engine.device.type, 'precision': str(engine.dtype).split('.')[-1],
                 'model': model, 'mode': mode, 'batch_size': len(batch.users),
-                'repetition': repetition, 'iteration': iteration, 'batch_latency_ms': elapsed_ms})
+                'repetition': repetition_start + repetition, 'iteration': iteration,
+                'order_position': order_position, 'batch_latency_ms': elapsed_ms})
             del result
         if engine.device.type == 'mps':
             memory.append(memory_sample())
     return records, memory
+
+
+def rotating_schedule(repetitions):
+    if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions < 1:
+        raise ValueError('Repetitions must be a positive integer')
+    return [(rep, MODES[rep % len(MODES):] + MODES[:rep % len(MODES)]) for rep in range(repetitions)]
+
+
+def time_rotating_variants(engine, batch, model, iterations, repetitions):
+    for mode in MODES:
+        for _ in range(2):
+            execute(engine, batch, model, mode)
+    synchronize(engine.device.type)
+    records, memory, schedule = [], [], []
+    for rep, modes in rotating_schedule(repetitions):
+        for position, mode in enumerate(modes):
+            measured, samples = time_variant(engine, batch, model, mode, iterations, 1,
+                warmup=0, repetition_start=rep, order_position=position)
+            records.extend(measured)
+            schedule.append({'device': engine.device.type, 'precision': str(engine.dtype).split('.')[-1],
+                'model': model, 'mode': mode, 'batch_size': len(batch.users),
+                'repetition': rep, 'order_position': position})
+            memory.extend({'mode': mode, 'sample': rep, **sample} for sample in samples)
+    return records, memory, schedule
+
+
+def verify_checkpoint(checkpoint):
+    manifest = json.loads(checkpoint.with_name('manifest.json').read_text())
+    digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    if not isinstance(manifest, dict) or manifest.get(checkpoint.name) != digest:
+        raise ValueError('Profiling checkpoint hash does not match manifest')
+    return digest
 
 
 @torch.inference_mode()
@@ -146,18 +180,22 @@ def require_fp32_equivalence(records):
         raise AssertionError('FP32 batched inference differs from checkpoint recommendations')
 
 
-def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetitions=3):
+def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetitions=6):
     if not torch.backends.mps.is_available():
         raise RuntimeError('An available Apple MPS GPU is required, CPU fallback is not used')
     if os.environ.get('PYTORCH_ENABLE_MPS_FALLBACK', '0') != '0':
         raise ValueError('Set PYTORCH_ENABLE_MPS_FALLBACK=0 for this GPU experiment')
     if not batch_sizes or any(isinstance(size, bool) or not isinstance(size, int) or size < 1 for size in batch_sizes):
         raise ValueError('Batch sizes must be positive integers')
-    if iterations < 1 or repetitions < 1:
-        raise ValueError('Iterations and repetitions must be positive')
+    for name, value in [('iterations', iterations), ('repetitions', repetitions)]:
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f'{name} must be a positive integer')
+    if len(set(batch_sizes)) != len(batch_sizes):
+        raise ValueError('Batch sizes must not contain duplicates')
     output.mkdir(parents=True, exist_ok=True)
     torch.set_num_threads(1)
     checkpoint = ARTIFACTS_DIR / 'neural' / 'neural_recommender.pt'
+    checkpoint_hash = verify_checkpoint(checkpoint)
     system = NeuralSystem.load(checkpoint)
     user_ids = [*system.users.user_id, 'new-user']
     references = {}
@@ -167,7 +205,7 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
             all_scores = recommender.score_all(user)
             references[(model, user)] = (expected.content_id.tolist(),
                 {content: float(score) for content, score in zip(system.encoder.content_ids, all_scores) if np.isfinite(score)})
-    records, validation, memory, transfers, variant_validation = [], [], [], [], []
+    records, validation, memory, transfers, variant_validation, schedule = [], [], [], [], [], []
     # CPU vectorized FP32 is measured on the same inputs as a hardware reference.
     cpu = BatchedNeuralInference(system)
     for model in MODEL_NAMES:
@@ -180,6 +218,9 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
             variant_validation.extend(checked)
             measured, _ = time_variant(cpu, batch, model, 'batched', iterations, repetitions)
             records.extend(measured)
+            schedule.extend({'device': 'cpu', 'precision': 'float32', 'model': model,
+                'mode': 'batched', 'batch_size': size, 'repetition': rep, 'order_position': 0}
+                for rep in range(repetitions))
     del cpu
     for dtype in (torch.float32, torch.float16):
         engine = BatchedNeuralInference(system, 'mps', dtype)
@@ -192,16 +233,16 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
                 synchronize('mps')
                 transfers.append({'precision': str(dtype).split('.')[-1], 'model': model, 'batch_size': size,
                     'prepare_and_transfer_ms': (time.perf_counter_ns() - started) / 1e6})
-                for mode in ('per_user_loop', 'batched_baseline', 'batched'):
+                for mode in MODES:
                     checked = validate_variant(engine, batch, users, model, mode, references)
                     if dtype == torch.float32:
                         require_fp32_equivalence(checked)
                     variant_validation.extend(checked)
-                    measured, samples = time_variant(engine, batch, model, mode, iterations, repetitions)
-                    records.extend(measured)
-                    memory.extend({'precision': str(dtype).split('.')[-1], 'model': model,
-                        'batch_size': size, 'mode': mode, 'sample': index, **sample}
-                        for index, sample in enumerate(samples))
+                measured, samples, ordering = time_rotating_variants(engine, batch, model, iterations, repetitions)
+                records.extend(measured)
+                schedule.extend(ordering)
+                memory.extend({'precision': str(dtype).split('.')[-1], 'model': model,
+                    'batch_size': size, **sample} for sample in samples)
                 print(f'{str(dtype)} {model} batch={size} complete', flush=True)
                 del batch
         del engine
@@ -243,25 +284,20 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
     operators = [{'operator': row.key, 'calls': row.count, 'self_cpu_time_us': row.self_cpu_time_total,
                   'cpu_time_us': row.cpu_time_total} for row in trace.key_averages()]
     frame = pd.DataFrame(records)
-    summary = []
-    for keys, group in frame.groupby(['device', 'precision', 'model', 'mode', 'batch_size'], sort=False):
-        device, precision, model, mode, size = keys
-        elapsed = group.batch_latency_ms.to_numpy()
-        p50, p95 = np.percentile(elapsed, [50, 95])
-        summary.append({'device': device, 'precision': precision, 'model': model, 'mode': mode,
-            'batch_size': int(size), 'samples': len(group), 'p50_batch_ms': p50, 'p95_batch_ms': p95,
-            'requests_per_second': int(size) * len(group) * 1000 / elapsed.sum()})
+    summary = summarize_timings(frame).to_dict('records')
     validation_frame = pd.DataFrame(validation)
     require_fp32_equivalence(validation)
     require_fp32_equivalence(variant_validation)
-    metadata = {'measured_at_utc': datetime.now(timezone.utc).isoformat(),
+    metadata = {'format_version': 2, 'measured_at_utc': datetime.now(timezone.utc).isoformat(),
         'device': 'Apple GPU via MPS', 'soc': subprocess.check_output(
             ['sysctl', '-n', 'machdep.cpu.brand_string'], text=True).strip(),
         'os': platform.platform(), 'ram_gib': psutil.virtual_memory().total / 2**30,
         'python': platform.python_version(), 'torch': torch.__version__, 'cpu_threads': 1,
-        'mps_cpu_fallback': False, 'checkpoint_sha256': hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+        'mps_cpu_fallback': False, 'checkpoint_sha256': checkpoint_hash,
         'iterations': iterations, 'repetitions': repetitions, 'batch_sizes': list(batch_sizes),
-        'warmup_batches': 2, 'validation_users': len(user_ids),
+        'warmup_batches_per_mode': 2,
+        'mode_order': list(MODES), 'mode_order_rule': 'left rotation by repetition modulo 3',
+        'fully_counterbalanced': repetitions % len(MODES) == 0, 'validation_users': len(user_ids), 'validation_user_ids': user_ids,
         'precision_validation_rows': len(validation), 'variant_validation_rows': len(variant_validation),
         'timed_variants_validated': len(summary),
         'timing_scope': 'prepared device inputs through GPU-resident top10 outputs, synchronized before and after each sample',
@@ -272,9 +308,10 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
         'memory_scope': 'MPS tensor and Metal driver bytes sampled after repetitions and stage probes, not a peak counter',
         'recommended_max_memory_bytes': torch.mps.recommended_max_memory(),
         'source_sha256': {name: hashlib.sha256((PROJECT_ROOT / 'src' / name).read_bytes()).hexdigest()
-                          for name in ('gpu_inference.py', 'profile_gpu.py', 'neural.py')},
+                          for name in ('gpu_inference.py', 'profile_gpu.py', 'gpu_report.py', 'neural.py')},
         'summary': summary}
     for name, data in [('timings.csv', frame), ('summary.csv', pd.DataFrame(summary)),
+                       ('mode_schedule.csv', pd.DataFrame(schedule)), ('paired_comparison.csv', paired_comparisons(frame)),
                        ('precision_validation.csv', validation_frame), ('variant_validation.csv', pd.DataFrame(variant_validation)),
                        ('stages.csv', pd.DataFrame(stages)),
                        ('memory_samples.csv', pd.DataFrame(memory)), ('input_preparation.csv', pd.DataFrame(transfers)),
@@ -282,9 +319,12 @@ def profile(output: Path, batch_sizes=(1, 8, 32, 128), iterations=10, repetition
         data.to_csv(output / name, index=False)
     (output / 'results.json').write_text(json.dumps(metadata, indent=2, allow_nan=False) + '\n')
     names = ['timings.csv', 'summary.csv', 'precision_validation.csv', 'variant_validation.csv', 'stages.csv',
-             'memory_samples.csv', 'input_preparation.csv', 'cpu_operators.csv', 'cpu_dispatch_trace.json', 'sort_calls.csv', 'results.json']
+             'memory_samples.csv', 'input_preparation.csv', 'cpu_operators.csv', 'cpu_dispatch_trace.json', 'sort_calls.csv', 'mode_schedule.csv', 'paired_comparison.csv', 'results.json']
+    # A completed new run invalidates the chart from an older run in this directory.
+    (output / 'throughput.png').unlink(missing_ok=True)
     (output / 'manifest.json').write_text(json.dumps({name: hashlib.sha256((output / name).read_bytes()).hexdigest()
         for name in names}, indent=2) + '\n')
+    verify_report(output)
     return metadata
 
 
@@ -293,9 +333,13 @@ def main():
     parser.add_argument('--output', type=Path, default=REPORTS_DIR / 'gpu_profile')
     parser.add_argument('--batch-sizes', type=int, nargs='+', default=[1, 8, 32, 128])
     parser.add_argument('--iterations', type=int, default=10)
-    parser.add_argument('--repetitions', type=int, default=3)
+    parser.add_argument('--repetitions', type=int, default=6)
+    parser.add_argument('--verify-only', action='store_true')
     args = parser.parse_args()
-    profile(args.output, args.batch_sizes, args.iterations, args.repetitions)
+    if args.verify_only:
+        print(json.dumps(verify_report(args.output), indent=2))
+    else:
+        profile(args.output, args.batch_sizes, args.iterations, args.repetitions)
 
 
 if __name__ == '__main__':
