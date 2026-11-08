@@ -1,0 +1,9 @@
+{
+  "rank": 0,
+  "local_rank": 0,
+  "world_size": 2,
+  "device": "cpu",
+  "backend": "gloo",
+  "pid": 26322,
+  "device_name": "arm"
+}

@@ -1,0 +1,23 @@
+{
+  "comparison.json": "3497e58bc7759abf3b635234690a643194f4b54ab8faeb4e7674e35998fb0c2c",
+  "round_0_world_1/communication.csv": "b3877ea2e745993fc9adac83cc0af825fb54119ab1fb1ec776db323f573ba8fb",
+  "round_0_world_1/evaluation_details.csv": "71174a07549e38290609999e271178216da985fb3d6e00e9c09f2b6d886a8ddb",
+  "round_0_world_1/model_metrics.csv": "6dd59441c7dff8ad874e9c2d0134ab709ac4819d2f39fdc24994e68ebc574e42",
+  "round_0_world_1/neural_recommender.pt": "73a9af28a1a5d962414bfbde8b9206929c37d0c9bf8e14f7d1f5dd4399791ac4",
+  "round_0_world_1/rank_0.json": "433feee26fe217546591e114c489daad338cb1df268372e964488dfa85824dd3",
+  "round_0_world_1/recommendations.csv": "768d768a6ff28080675291a9e3121121e711c498f187706ce12944b97d09a8b4",
+  "round_0_world_1/results.json": "b961b4821ba44fc377a63b4e034b2aa72d883aa837d259d69ed0c0a628270b63",
+  "round_0_world_1/steps_rank_0.csv": "25a5d35378d9ce6b813f79a6c85849747574e86a70ab5211cc98cfee62eab4df",
+  "round_0_world_1/training_history.csv": "3aca512a1ae10be773cd2e15a614d05db9d87dffecedcbb0153a489cfe0bf9d3",
+  "round_0_world_2/communication.csv": "448dcb1a7868669c406e20e4590009dafea48d2462997f3bf154edf1cd83fb13",
+  "round_0_world_2/evaluation_details.csv": "71174a07549e38290609999e271178216da985fb3d6e00e9c09f2b6d886a8ddb",
+  "round_0_world_2/model_metrics.csv": "6dd59441c7dff8ad874e9c2d0134ab709ac4819d2f39fdc24994e68ebc574e42",
+  "round_0_world_2/neural_recommender.pt": "523354349e1e0d13271f0cb8a41996d833c5a3299e5ff835e5b248f9f1b358a0",
+  "round_0_world_2/rank_0.json": "68ea950df6ff8e2a056d6c090127855c9e7f6d04553d09862fbb501cf4eb4353",
+  "round_0_world_2/rank_1.json": "a88560cdc9e666acb7bfb268d278095f6cedb5903c1eeacd1203f5806dc80add",
+  "round_0_world_2/recommendations.csv": "aa530e13c08bc74dd430bde32e0b029a009b2dbc0296d520aaa330c5106ae4b7",
+  "round_0_world_2/results.json": "165dd448dcca71e62953ea7f8d3b7c4a4f9295cddc1f2e734e725d7bfc258a13",
+  "round_0_world_2/steps_rank_0.csv": "e0f2518a6b394a9c40fe47f797702040f995835922afa888bda43fda839b4208",
+  "round_0_world_2/steps_rank_1.csv": "1970ec913b5bff00addec735c99ba0857f84348bca4ec4c0f47381a543bf5088",
+  "round_0_world_2/training_history.csv": "9a838f5d9f5dc8ecf0f1e8b134cd7f59f03923f80b0c71bf4bd242aee8d1055e"
+}

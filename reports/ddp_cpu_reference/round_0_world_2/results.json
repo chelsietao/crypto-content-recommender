@@ -1,0 +1,69 @@
+{
+  "device": "cpu",
+  "training_precision": "float64",
+  "backend": "gloo",
+  "world_size": 2,
+  "epochs": 30,
+  "global_batch_size": 128,
+  "torch": "2.6.0",
+  "python": "3.9.6",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "fit_seconds_max_rank": 5.767995667,
+  "training": {
+    "two_tower": {
+      "selected_epoch": 4,
+      "validation_loss": 0.9458718328068975,
+      "parameters_changed": true,
+      "training_examples": 2345,
+      "validation_examples": 689,
+      "world_size": 2,
+      "global_batch_size": 128,
+      "training_precision": "torch.float64",
+      "training_seconds_max_rank": 0.46676199999999923,
+      "training_input_sha256": "19507c31c2c5c3cdde972675629b06a347956f13297dbc822421fb54bdf65fcc",
+      "label_partition_sha256": "7eb9266ced187d67038df6897ee1a8c9665cb1d4076ad89f7ba46274650bef7c",
+      "replica_max_parameter_error": 0.0,
+      "parameter_bytes": 118280
+    },
+    "neural_ranker": {
+      "selected_epoch": 18,
+      "validation_loss": 0.8105892267120488,
+      "parameters_changed": true,
+      "training_examples": 533,
+      "validation_examples": 394,
+      "world_size": 2,
+      "global_batch_size": 128,
+      "training_precision": "torch.float64",
+      "training_seconds_max_rank": 0.10571991700000005,
+      "training_input_sha256": "6106bd081c7ffd9e80652c7c05dc467091a35e6881d958dd85a9daf0383cd048",
+      "label_partition_sha256": "18145c1741d11c85be73c3efb6f05071b4c4249454c2300f886acfc99f363722",
+      "replica_max_parameter_error": 0.0,
+      "parameter_bytes": 77576
+    },
+    "window_boundaries": [
+      "2026-02-03T19:47:00+00:00",
+      "2026-02-13T05:58:00+00:00",
+      "2026-02-27T04:55:00+00:00",
+      "2026-03-08T04:48:00+00:00"
+    ],
+    "window_examples": [
+      2345,
+      689,
+      911,
+      681
+    ],
+    "ranker_candidate_examples": 927
+  },
+  "timing_scope": "data preparation and model fit, excluding isolated communication benchmark and exports",
+  "communication_scope": "independent all_reduce at each stage parameter payload, synchronized, five warmups and ten samples",
+  "checkpoint_reload_users": 81,
+  "ranker_example_index_sha256": "2a1cd73b8c84c8655a25fd9a26e4530c7d0ee9e4bdbfedd6748a24ff47ad0ba3",
+  "checkpoint_sha256": "9c44e57ab96f7853126c459e1fac65e995603c1cba46d65a2b1622740ff50d71",
+  "source_sha256": {
+    "distributed_training.py": "357b727d4fa174b3431287e4e2dcfb25c98db270603f04488f4ac8355c9bd74a",
+    "train_distributed.py": "b3f6b54e9071f6bc03e2d586b2ef95cae5466c28c9625df55e64a11a7e2ed61e",
+    "neural.py": "fcf204cb59d20a7d790b204ef0b83d6053614a488c17d42dccae1bff2bcb6270",
+    "data_pipeline.py": "2d7712a4673ce6104031899f2862178dc56e0f9a20ccc00cd41775800a9edb94",
+    "evaluation.py": "ca35bf9589a80143be2cdc23163395d76d9ede27cb1e6ea7c51f3e181c183996"
+  }
+}

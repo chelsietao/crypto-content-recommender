@@ -67,3 +67,6 @@ artifacts/neural/*
 # Local inference benchmark server log
 reports/service_benchmark/server.log
 reports/service_review_benchmark/server.log
+
+# DDP launcher logs are local diagnostics
+reports/ddp_*/**/launcher.log

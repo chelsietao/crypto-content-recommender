@@ -289,7 +289,8 @@ class NeuralSystem:
             self.contents.quality_score.to_numpy()[item_indices], np.exp(-np.log(2) * age / 30),
             np.full(len(item_indices), user_values[-1])]).astype(np.float32)
 
-    def fit(self):
+    def fit(self, trainer=None):
+        fit_network = train_network if trainer is None else trainer
         seed_cpu(self.config.seed)
         examples, self.histories = prepare_examples(self.encoder, self.interactions, self.config)
         self.examples = examples
@@ -297,7 +298,7 @@ class NeuralSystem:
         user_tensor = torch.from_numpy(examples.user_features)
         labels = torch.from_numpy(examples.labels)
         self.tower = TwoTower(self.encoder.user_dim, item_tensor.shape[1], self.config)
-        curve, summary = train_network(self.tower, (user_tensor, item_tensor[examples.item_indices]), labels,
+        curve, summary = fit_network(self.tower, (user_tensor, item_tensor[examples.item_indices]), labels,
             examples.indices(0), examples.indices(1), self.config, "two_tower")
         self.history.extend(curve)
         self.training_summary["two_tower"] = summary
@@ -326,7 +327,7 @@ class NeuralSystem:
         selected = np.array(selected)
         rank_inputs = torch.stack(rank_features)
         self.ranker = NeuralRanker(self.config.embedding_dim, self.config.hidden_dim)
-        curve, summary = train_network(self.ranker, (rank_inputs,), labels[selected],
+        curve, summary = fit_network(self.ranker, (rank_inputs,), labels[selected],
             np.flatnonzero(examples.windows[selected] == 2), np.flatnonzero(examples.windows[selected] == 3),
             self.config, "neural_ranker")
         self.history.extend(curve)

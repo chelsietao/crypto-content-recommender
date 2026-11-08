@@ -1,0 +1,40 @@
+{
+  "device": "cpu",
+  "training_precision": "float64",
+  "comparison": "numerical",
+  "epochs": 30,
+  "global_batch_size": 128,
+  "repetitions": 1,
+  "comparisons": [
+    {
+      "device": "cpu",
+      "comparison": "numerical",
+      "training_precision": "float64",
+      "single_world_size": 1,
+      "distributed_world_size": 2,
+      "maximum_parameter_error": {
+        "two_tower": 0.0,
+        "neural_ranker": 0.0
+      },
+      "maximum_recommendation_score_error": 0.0,
+      "matched_recommendation_groups": 162,
+      "selected_epochs": [
+        {
+          "two_tower": 4,
+          "neural_ranker": 18
+        },
+        {
+          "two_tower": 4,
+          "neural_ranker": 18
+        }
+      ],
+      "single_fit_seconds": 5.27002025,
+      "distributed_fit_seconds": 5.767995667,
+      "fit_time_ratio": 0.9136657782444204,
+      "scaling_efficiency": 0.4568328891222102,
+      "repetition": 0
+    }
+  ],
+  "measurement_scope": "one vs two ranks on the explicitly recorded device type",
+  "gpu_result": false
+}

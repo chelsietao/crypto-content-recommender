@@ -1,0 +1,11 @@
+{
+  "communication.csv": "89379d3087253b535683a4714ba20c74eef36a722dd1250913da8d2aba2062b4",
+  "evaluation_details.csv": "71174a07549e38290609999e271178216da985fb3d6e00e9c09f2b6d886a8ddb",
+  "model_metrics.csv": "6dd59441c7dff8ad874e9c2d0134ab709ac4819d2f39fdc24994e68ebc574e42",
+  "neural_recommender.pt": "28e249eab6d571923d75b344cf87fd72c574458049eff9715f2d82441c17b8a9",
+  "rank_0.json": "707af691d3a500a6569bc3b5fdee60da957673ec117405c6b14b5325ee05dcd8",
+  "recommendations.csv": "76730d42e76b96d10a6b35753f6409dabf5e7af6af0ca2e82a6ff914e95eb3c7",
+  "results.json": "4e8316176bbce176a1a59838da30c9e6ff38241182a4c2c93398b4c9dbf06957",
+  "steps_rank_0.csv": "b0686bee5dc0378b3349f0bda64e0eec756e01e741016265ab104886c00ae59f",
+  "training_history.csv": "c584b25a725e27cf3cef5532fb912ba56bda00aabd0411526a15e2bc1f09ed2d"
+}

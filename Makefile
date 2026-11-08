@@ -36,3 +36,7 @@ service-benchmark:
 .PHONY: gpu-profile
 gpu-profile:
 	PYTORCH_ENABLE_MPS_FALLBACK=0 python -m src.profile_gpu
+
+.PHONY: ddp-cpu-check
+ddp-cpu-check:
+	python -m src.validate_distributed --device cpu --precision float64 --epochs 30 --output reports/ddp_cpu_reference
