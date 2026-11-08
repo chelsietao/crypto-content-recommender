@@ -14,6 +14,8 @@ Apple GPU 的 MPS profiling 與排序優化，請見 [GPU profiling 與優化](R
 DDP 訓練、全域 batch 與 CPU 一致性驗證，請見 [分散式訓練實作](README_DDP_TRAINING.md)，完整步驟、checkpoint 評估與程序清理修正請見 [DDP 驗證優化紀錄](README_DDP_REVIEW.md)。
 
 訓練曲線與 checkpoint 內部紀錄的逐筆核對，請見 [DDP 訓練曲線驗證](README_DDP_HISTORY_REVIEW.md)。
+
+V9 Transformer 的內容重排序、品質評估與 CPU 延遲及資源量測，請見 [Transformer 內容重排序](README_TRANSFORMER_RERANKING.md)。
 ## 資料與流程
 
 資料包含 240 筆內容、80 位合成使用者與 8,564 筆互動事件，互動類型包括曝光、點擊、喜歡、收藏與隱藏，使用固定亂數種子產生。

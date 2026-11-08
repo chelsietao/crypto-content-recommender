@@ -1,0 +1,14 @@
+{
+  "benchmark_workers.json": "b454db475407ae707f783f351e321dc438b1989b329326ebe109a021489008bf",
+  "evaluation_details.csv": "4c30c9b23862cb45808ad2c4b75bbd781bea5df3924e6bf0da3bf5745058052b",
+  "latency_samples.csv": "70e431919ebe041be1c638dc9c77fa95d509bb4bd214100af38b9de5a0739eba",
+  "model_metrics.csv": "2d1cbd59947fd21813cb31216a6fdae9cee8aa7e3adaa3e0008158bb7d9e3896",
+  "performance.csv": "6a80914a9fbb8f604a2435ddfaac36f388d96186a41b0b2253c5ba0214619a8e",
+  "quality_deltas.json": "2d054455b0bcca637b3d9a317a9eb668957ecb4cc4e0eaa433364906d713a69b",
+  "recommendations.csv": "010cec10b1417e7257f0132176eddee78e04684239932983023ee90a45925154",
+  "run_summary.json": "60545409f937466c280aebe70f905b05c716522f505506da7736c7cf6f4b272d",
+  "training_audit.json": "6bb3f5feaaf30c3dacd118532c5cfdbd1a61882e84826a91c2dfdbfcdc75ff8a",
+  "training_curves.png": "3a8146e99ee9e6f8836babda363ef9c251f6303db85ae99c8d7e45bc3c34e40d",
+  "training_history.csv": "fb911c6abab118f9e773fe6db3d1dd1f117e4091b19766e8a8340d7e9525a4e4",
+  "transformer.pt": "e646bf249cc0266d8e77caab75bdd0e9b268f9864ae46554d8736b998b9fb370"
+}

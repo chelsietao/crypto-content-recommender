@@ -1,0 +1,29 @@
+{
+  "tests_passed": 198,
+  "new_transformer_tests": 16,
+  "ddp_integration_enabled": true,
+  "mps_fallback_enabled": false,
+  "transformer": {
+    "files": 12,
+    "recommendation_users": 81,
+    "benchmark_requests": 800
+  },
+  "ddp": {
+    "ddp_cpu_reference": {
+      "device": "cpu",
+      "gpu_result": false,
+      "repetitions": 1,
+      "files": 23,
+      "verified_global_steps": 1440
+    },
+    "ddp_cpu_validation": {
+      "device": "cpu",
+      "gpu_result": false,
+      "repetitions": 1,
+      "files": 23,
+      "verified_global_steps": 1440
+    }
+  },
+  "transformer_manifest_sha256": "bc0c2f44f79edfcb18b504048ae500dd8c4c243fe2fa7a2b50abc5382bd078f0",
+  "test_source_sha256": "216c93a2b8fa26db7e05d3b129df8228848471673db18d44654f981b0498614f"
+}

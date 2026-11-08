@@ -1,0 +1,51 @@
+{
+  "format_version": 1,
+  "device": "cpu",
+  "dtype": "float32",
+  "threads": 1,
+  "concurrency": 1,
+  "python": "3.9.6",
+  "torch": "2.6.0",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "cpu_model": "arm",
+  "logical_cpus": 15,
+  "physical_memory_bytes": 25769803776,
+  "config": {
+    "seed": 42,
+    "epochs": 16,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "vocabulary_size": 2048,
+    "max_tokens": 32,
+    "width": 32,
+    "heads": 4,
+    "layers": 2,
+    "inference_batch_size": 50
+  },
+  "requests_per_worker": 100,
+  "repetitions": 4,
+  "training_wall_seconds": 6.617934791,
+  "training_cpu_seconds": 6.500266,
+  "training": {
+    "selected_epoch": 1,
+    "validation_loss": 0.8303582668304443,
+    "parameters_changed": true,
+    "training_examples": 533,
+    "validation_examples": 394
+  },
+  "training_cutoff": "2026-03-08T04:48:00+00:00",
+  "evaluated_users": 30,
+  "checkpoint_reload_users": 81,
+  "checkpoint_reload_max_score_error": 0.0,
+  "base_checkpoint_sha256": "9d18da57a128f3370a9b141df0c63d9cfbeadb2118136c40afdb56f504e6516a",
+  "measurement_scope": "in-process warm recommendation, frozen retrieval + reranking + top-10 formatting, cached catalog tokenization",
+  "memory_scope": "isolated worker absolute sampled RSS after warmup, includes Python, PyTorch and base NeuralSystem",
+  "cpu_scope": "process CPU time per request, including RSS sampler thread",
+  "training_scope": "example construction and Transformer fit, excludes base checkpoint training and exports",
+  "source_sha256": {
+    "transformer_reranker.py": "a3096516d88e31aca829c788cb4120fa46b656083d0c92b866ccaf7fb5bcd20a",
+    "run_transformer.py": "cf058e1f5c40c541960ddc3f1375e5f7817152f8b398279037ef1ff2246d6e83",
+    "neural.py": "fcf204cb59d20a7d790b204ef0b83d6053614a488c17d42dccae1bff2bcb6270",
+    "evaluation.py": "ca35bf9589a80143be2cdc23163395d76d9ede27cb1e6ea7c51f3e181c183996"
+  }
+}

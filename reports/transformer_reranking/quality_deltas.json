@@ -1,0 +1,13 @@
+{
+  "baseline": "v8_pytorch_neural_ranker",
+  "model": "v9_transformer_content_reranker",
+  "metric": "ndcg@10",
+  "users": 30,
+  "mean_paired_delta": 0.021160269505796955,
+  "bootstrap_repetitions": 2000,
+  "percentile_95_interval": [
+    -0.08930689896748836,
+    0.1457956153007789
+  ],
+  "seed": 42
+}
