@@ -103,8 +103,14 @@ def verify(output=OUTPUT):
     frames,summary=compute()
     if saved['run_summary.json'] != summary:
         raise ValueError('Repository evaluation summary differs from checkpoints and dataset')
-    for name,frame in frames.items():
-        pd.testing.assert_frame_equal(saved[name],frame,check_dtype=False,check_exact=False,atol=1e-10,rtol=1e-10)
+    for name, frame in frames.items():
+        if name == 'recommendations.csv':
+            pd.testing.assert_frame_equal(saved[name].drop(columns='score'), frame.drop(columns='score'),
+                                          check_dtype=False, check_exact=True)
+            np.testing.assert_allclose(saved[name].score, frame.score, atol=1e-6, rtol=1e-5)
+        else:
+            pd.testing.assert_frame_equal(saved[name], frame, check_dtype=False,
+                                          check_exact=False, atol=1e-10, rtol=1e-10)
     return {'models':len(summary['models']),'evaluated_users':summary['evaluated_users'],
             'saved_recommendation_groups':saved['recommendations.csv'].groupby(['model','user_id']).ngroups}
 

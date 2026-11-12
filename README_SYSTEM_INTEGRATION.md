@@ -78,7 +78,7 @@ python -m src.evaluate_repository --verify-only
 
 品質區間以 V6 為參照，每個模型分別計算逐位使用者的 Hit 與 NDCG 差值，共產生 18 列統計，採用固定亂數種子的 2,000 次使用者配對 bootstrap，V6 自身的差值與區間均為 0。
 
-評估產出保存於 [repository_evaluation](reports/repository_evaluation/)，包含 9 列模型指標、270 列逐位使用者結果、243 組神經模型推薦、候選規則、品質區間與執行摘要，`--verify-only` 會從模型重新計算並核對全部表格。
+評估產出保存於 [repository_evaluation](reports/repository_evaluation/)，包含 9 列模型指標、270 列逐位使用者結果、243 組神經模型推薦、候選規則、品質區間與執行摘要，`--verify-only` 會從模型重新計算並核對全部表格。推薦 ID 與順序逐筆比對，分數沿用推論驗證的絕對容差 1e-6 與相對容差 1e-5，以容納 macOS 與 Linux 的 FP32 捨入差異。
 
 ## 驗證與修改檔案
 
