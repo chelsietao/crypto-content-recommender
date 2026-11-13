@@ -82,7 +82,7 @@ FP16 的前十筆內容集合重合率為 100%，V7 有 36 筆逐組紀錄的順
 | mps / float16 | V7 雙塔召回   |         0.714 |     175727   |
 | mps / float16 | V8 神經排序器 |         1.185 |     107333   |
 
-![本次吞吐量實測](reports/gpu_profile_review/throughput.png)
+![本次吞吐量實測](../reports/gpu_profile_review/throughput.png)
 
 整批計時從已準備的裝置輸入開始，到裝置上的推薦輸出完成為止，GPU 在每筆計時前後同步，輸入準備、階段探測與 CPU 派發 trace 分別保存。
 
@@ -91,7 +91,7 @@ FP16 的前十筆內容集合重合率為 100%，V7 有 36 筆逐組紀錄的順
 本次新增 18 個回歸案例，完整測試在實體 MPS 環境通過 126 項，測試涵蓋小候選上限、超過候選數的請求、異常結果張量、缺少使用者或內容、重複內容、錯誤裝置與精度，以及三種計時模式的完整核對。
 
 ```bash
-python -m pip install -r requirements-gpu.txt
+python -m pip install -r requirements/requirements-gpu.txt
 PYTORCH_ENABLE_MPS_FALLBACK=0 python -m pytest -q
 python -m src.run_neural --verify-only
 PYTORCH_ENABLE_MPS_FALLBACK=0 python -m src.profile_gpu \
@@ -106,16 +106,16 @@ python -m src.plot_gpu_profile --input reports/gpu_profile_review
 
 | 檔案 | 內容 |
 |---|---|
-| [src/gpu_inference.py](src/gpu_inference.py) | 推薦數量截斷與結果張量驗證 |
-| [src/profile_gpu.py](src/profile_gpu.py) | 完整結果稽核與每組量測前的輸出核對 |
-| [tests/test_gpu_inference.py](tests/test_gpu_inference.py) | 本次相容性與稽核回歸案例 |
-| [逐組輸出核對](reports/gpu_profile_review/variant_validation.csv) | 56 組量測路徑的 2,366 筆驗證紀錄 |
-| [固定使用者精度核對](reports/gpu_profile_review/precision_validation.csv) | 486 筆使用者、模型與精度核對 |
-| [效能摘要](reports/gpu_profile_review/summary.csv) | 各裝置、精度、模式與批次大小的效能 |
-| [逐批計時](reports/gpu_profile_review/timings.csv) | 1,680 筆整批延遲 |
-| [完整結果](reports/gpu_profile_review/results.json) | 執行環境、來源雜湊與驗證覆蓋數量 |
-| [記憶體樣本](reports/gpu_profile_review/memory_samples.csv) | MPS 張量與 Metal 驅動配置取樣 |
-| [階段計時](reports/gpu_profile_review/stages.csv) | 原路徑與優化路徑的同步階段耗時 |
-| [CPU 派發 trace](reports/gpu_profile_review/cpu_dispatch_trace.json) | 主機算子與 profiling 階段記錄 |
-| [檔案雜湊](reports/gpu_profile_review/manifest.json) | 本次產出檔案的 SHA-256 |
+| [src/gpu_inference.py](../src/gpu_inference.py) | 推薦數量截斷與結果張量驗證 |
+| [src/profile_gpu.py](../src/profile_gpu.py) | 完整結果稽核與每組量測前的輸出核對 |
+| [tests/test_gpu_inference.py](../tests/test_gpu_inference.py) | 本次相容性與稽核回歸案例 |
+| [逐組輸出核對](../reports/gpu_profile_review/variant_validation.csv) | 56 組量測路徑的 2,366 筆驗證紀錄 |
+| [固定使用者精度核對](../reports/gpu_profile_review/precision_validation.csv) | 486 筆使用者、模型與精度核對 |
+| [效能摘要](../reports/gpu_profile_review/summary.csv) | 各裝置、精度、模式與批次大小的效能 |
+| [逐批計時](../reports/gpu_profile_review/timings.csv) | 1,680 筆整批延遲 |
+| [完整結果](../reports/gpu_profile_review/results.json) | 執行環境、來源雜湊與驗證覆蓋數量 |
+| [記憶體樣本](../reports/gpu_profile_review/memory_samples.csv) | MPS 張量與 Metal 驅動配置取樣 |
+| [階段計時](../reports/gpu_profile_review/stages.csv) | 原路徑與優化路徑的同步階段耗時 |
+| [CPU 派發 trace](../reports/gpu_profile_review/cpu_dispatch_trace.json) | 主機算子與 profiling 階段記錄 |
+| [檔案雜湊](../reports/gpu_profile_review/manifest.json) | 本次產出檔案的 SHA-256 |
 | [GPU profiling 初版說明](README_GPU_PROFILING.md) | 批次架構、排序優化與原始量測 |

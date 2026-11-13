@@ -70,7 +70,7 @@ CSV 保留完整資料，Markdown 報告依模型選取範例，測試確認各�
 
 Like、Save 與 Hide 儲存於目前瀏覽器工作階段，介面移除合成內容的範例網址按鈕，並加入專案來源碼與本報告入口，應用程式啟動時在記憶體產生資料。
 
-`requirements.txt` 保留應用程式與資料流程使用的套件，`requirements-dev.txt` 加入測試與 Notebook 工具，`.streamlit/config.toml` 設定展示主題並關閉使用統計蒐集。
+`requirements.txt` 保留應用程式與資料流程使用的套件，`requirements/requirements-dev.txt` 加入測試與 Notebook 工具，`.streamlit/config.toml` 設定展示主題並關閉使用統計蒐集。
 
 ## 11. 本次資料與執行結果
 
@@ -107,7 +107,7 @@ Like、Save 與 Hide 儲存於目前瀏覽器工作階段，介面移除合成�
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
+python -m pip install -r requirements/requirements-dev.txt
 python -m pip check
 python -m pytest -q
 python -m src.run_pipeline
@@ -126,7 +126,7 @@ GitHub Actions 的驗證流程使用 Python 3.11，設定為安裝依賴、執�
 | 執行入口 | `src/run_pipeline.py`，產生更新後的指標、報告與摘要 |
 | 展示介面 | `app.py` 與 `.streamlit/config.toml`，提供互動操作與視覺設定 |
 | 測試 | `tests/`，包含資料、時間、模型與邊界測試 |
-| 安裝與自動化 | `requirements.txt`、`requirements-dev.txt` 與 `.github/workflows/verify.yml`，區分套件用途並執行驗證 |
+| 安裝與自動化 | `requirements.txt`、`requirements/requirements-dev.txt` 與 `.github/workflows/verify.yml`，區分套件用途並執行驗證 |
 | 說明與結果 | `README.md`、本報告、模型說明、Notebook 與 `artifacts/`，對應本次程式與重新計算的結果 |
 
 ## 14. 同分排序規則與公開部署驗證

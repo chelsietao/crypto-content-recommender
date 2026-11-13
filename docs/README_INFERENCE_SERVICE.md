@@ -19,10 +19,10 @@
 
 ## 2. 啟動與使用
 
-服務依賴放在 `requirements-service.txt`，在專案根目錄執行下列指令即可啟動。
+服務依賴放在 `requirements/requirements-service.txt`，在專案根目錄執行下列指令即可啟動。
 
 ```bash
-python -m pip install -r requirements-service.txt
+python -m pip install -r requirements/requirements-service.txt
 python -m src.serve_neural --host 127.0.0.1 --port 8000 --torch-threads 1
 ```
 
@@ -127,14 +127,14 @@ GitHub Actions 加入服務依賴、服務測試與 HTTP 冒煙測試，冒煙�
 
 | 檔案 | 內容 |
 |---|---|
-| [src/serve_neural.py](src/serve_neural.py) | 服務啟動、模型載入、請求驗證與 HTTP 端點 |
-| [src/benchmark_service.py](src/benchmark_service.py) | 獨立程序與 HTTP 效能量測 |
-| [tests/test_service.py](tests/test_service.py) | 服務行為、資料核對與並發測試 |
-| [requirements-service.txt](requirements-service.txt) | 服務與量測依賴 |
-| [結果摘要](reports/service_benchmark/summary.csv) | 六組並發設定的延遲、吞吐量與錯誤率 |
-| [完整結果](reports/service_benchmark/results.json) | 硬體、版本、checkpoint、程式雜湊與三回合明細 |
-| [逐筆紀錄](reports/service_benchmark/requests.csv) | 9,000 筆請求的延遲與驗證結果 |
-| [結果檔案雜湊](reports/service_benchmark/manifest.json) | 三個結果檔案的 SHA-256 |
+| [src/serve_neural.py](../src/serve_neural.py) | 服務啟動、模型載入、請求驗證與 HTTP 端點 |
+| [src/benchmark_service.py](../src/benchmark_service.py) | 獨立程序與 HTTP 效能量測 |
+| [tests/test_service.py](../tests/test_service.py) | 服務行為、資料核對與並發測試 |
+| [requirements/requirements-service.txt](../requirements/requirements-service.txt) | 服務與量測依賴 |
+| [結果摘要](../reports/service_benchmark/summary.csv) | 六組並發設定的延遲、吞吐量與錯誤率 |
+| [完整結果](../reports/service_benchmark/results.json) | 硬體、版本、checkpoint、程式雜湊與三回合明細 |
+| [逐筆紀錄](../reports/service_benchmark/requests.csv) | 9,000 筆請求的延遲與驗證結果 |
+| [結果檔案雜湊](../reports/service_benchmark/manifest.json) | 三個結果檔案的 SHA-256 |
 | [雙塔模型說明](README_PYTORCH.md) | 訓練、模型架構與推薦指標 |
 | [雙塔優化紀錄](README_PYTORCH_REVIEW.md) | 推論計算與產出驗證的修正 |
 

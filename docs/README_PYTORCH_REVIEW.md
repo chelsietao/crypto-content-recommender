@@ -73,7 +73,7 @@ V7 的推薦入口採用 `retrieval_scores` 取得使用者向量與內容向量
 安裝神經模型依賴後，可使用以下指令執行測試、檢查已匯出的模型與重跑訓練。
 
 ```bash
-python -m pip install -r requirements-neural.txt
+python -m pip install -r requirements/requirements-neural.txt
 python -m pip check
 python -m pytest -q
 python -m src.run_neural --verify-only
@@ -85,10 +85,10 @@ python -m src.run_neural --verify-only
 
 | 檔案 | 內容 |
 |---|---|
-| [src/neural.py](src/neural.py) | 單次召回計算、使用者特徵讀取、候選過濾與 checkpoint 狀態 |
-| [src/run_neural.py](src/run_neural.py) | manifest 覆蓋檢查與推薦資料驗證 |
-| [tests/test_neural.py](tests/test_neural.py) | 神經模型測試與本次回歸案例 |
-| [檢查結果紀錄](reports/PYTORCH_REVIEW_RESULTS.json) | 核對結果、計算次數與測試數量 |
+| [src/neural.py](../src/neural.py) | 單次召回計算、使用者特徵讀取、候選過濾與 checkpoint 狀態 |
+| [src/run_neural.py](../src/run_neural.py) | manifest 覆蓋檢查與推薦資料驗證 |
+| [tests/test_neural.py](../tests/test_neural.py) | 神經模型測試與本次回歸案例 |
+| [檢查結果紀錄](../reports/PYTORCH_REVIEW_RESULTS.json) | 核對結果、計算次數與測試數量 |
 | [模型實作文件](README_PYTORCH.md) | 資料流程、模型架構、訓練曲線與完整指標 |
-| [訓練摘要](artifacts/neural/run_summary.json) | 本次重跑的環境、參數與訓練選模結果 |
-| [checkpoint](artifacts/neural/neural_recommender.pt) | 重跑訓練後保存的權重與資料 |
+| [訓練摘要](../artifacts/neural/run_summary.json) | 本次重跑的環境、參數與訓練選模結果 |
+| [checkpoint](../artifacts/neural/neural_recommender.pt) | 重跑訓練後保存的權重與資料 |

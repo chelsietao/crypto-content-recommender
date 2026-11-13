@@ -8,7 +8,7 @@
 
 重訓後的最大參數差異為 0，曲線、選模結果與樣本紀錄一致，推論批次大小 1、7、50 通過分數核對，所有內容皆已看過的情況回傳空推薦，既有 12 個產出檔案、81 位使用者推薦與 800 筆效能紀錄通過驗證，本次檢查未重現模型或既有量測結果錯誤。
 
-本次重訓與稽核紀錄保存於 [TRANSFORMER_AUDIT.json](reports/TRANSFORMER_AUDIT.json)，Transformer 的品質、延遲與資源量測口徑見 [版本說明](README_TRANSFORMER_RERANKING.md)。
+本次重訓與稽核紀錄保存於 [TRANSFORMER_AUDIT.json](../reports/TRANSFORMER_AUDIT.json)，Transformer 的品質、延遲與資源量測口徑見 [版本說明](README_TRANSFORMER_RERANKING.md)。
 
 本次整合後的完整測試共 214 項通過，新增三模型 HTTP、九模型重建及 Streamlit 操作核對，整合說明見 [三項改進](README_SYSTEM_INTEGRATION.md)，原有模型權重保持一致。
 
@@ -36,7 +36,7 @@ V7 雙塔先使用前段時間區段訓練與選模，權重凍結後供 V8 與 
 | V8 神經排序器 | 凍結雙塔後的候選特徵排序 | 0.2333 | 0.1013 | 0.7333 |
 | V9 Transformer | 使用者向量與內容詞元的交互注意力 | 0.2000 | 0.1225 | 0.7333 |
 
-這組合成資料的最高 NDCG@10 為 V6 的 0.3991，V9 的 NDCG@10 為 0.1225、命中率為 0.2000，其相對 V8 的逐位使用者 NDCG 差值平均為 0.0212，95% bootstrap 區間為 −0.0893 至 0.1458，完整彙整見 [九模型指標 CSV](reports/REPOSITORY_MODEL_METRICS.csv)。
+這組合成資料的最高 NDCG@10 為 V6 的 0.3991，V9 的 NDCG@10 為 0.1225、命中率為 0.2000，其相對 V8 的逐位使用者 NDCG 差值平均為 0.0212，95% bootstrap 區間為 −0.0893 至 0.1458，完整彙整見 [九模型指標 CSV](../reports/REPOSITORY_MODEL_METRICS.csv)。
 
 ## 展示、服務與硬體實測
 

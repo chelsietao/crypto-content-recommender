@@ -73,7 +73,7 @@ flowchart LR
 
 ## 6. 本次訓練曲線與選用權重
 
-![雙塔與神經排序器訓練曲線](artifacts/neural/training_curves.png)
+![雙塔與神經排序器訓練曲線](../artifacts/neural/training_curves.png)
 
 每張圖包含訓練損失與驗證損失，虛線標示被保存的 epoch，雙塔採用第 4 個 epoch，神經排序器採用第 18 個 epoch，兩者的權重都與初始化權重不同。
 
@@ -82,7 +82,7 @@ flowchart LR
 | 雙塔 | 4 | 0.945872 |
 | 神經排序器 | 18 | 0.810582 |
 
-每個 epoch 的數值保存在 [training_history.csv](artifacts/neural/training_history.csv)，訓練設定、區段邊界、正負標籤數與環境版本保存在 [run_summary.json](artifacts/neural/run_summary.json)。
+每個 epoch 的數值保存在 [training_history.csv](../artifacts/neural/training_history.csv)，訓練設定、區段邊界、正負標籤數與環境版本保存在 [run_summary.json](../artifacts/neural/run_summary.json)。
 
 ## 7. 本次推薦指標
 
@@ -101,11 +101,11 @@ flowchart LR
 
 雙塔與神經排序器的候選集合相同，本次候選召回涵蓋 22 位測試使用者的目標，雙塔前 10 筆結果命中 4 位使用者，神經排序器前 10 筆結果命中 7 位使用者。
 
-[完整實驗報告](reports/NEURAL_EXPERIMENT_RESULTS.md)，包含訓練範例數、選用權重與八種模型的評估結果，逐人結果保存在 [evaluation_details.csv](artifacts/neural/evaluation_details.csv)。
+[完整實驗報告](../reports/NEURAL_EXPERIMENT_RESULTS.md)，包含訓練範例數、選用權重與八種模型的評估結果，逐人結果保存在 [evaluation_details.csv](../artifacts/neural/evaluation_details.csv)。
 
 ## 8. checkpoint 與重載驗證
 
-[neural_recommender.pt](artifacts/neural/neural_recommender.pt) 保存雙塔與排序器的 `state_dict`、模型設定、特徵重建資料與歷史狀態，載入時指定 CPU 與 `weights_only=True`，再將模型切換為評估模式。
+[neural_recommender.pt](../artifacts/neural/neural_recommender.pt) 保存雙塔與排序器的 `state_dict`、模型設定、特徵重建資料與歷史狀態，載入時指定 CPU 與 `weights_only=True`，再將模型切換為評估模式。
 
 本次對 80 位既有使用者與 1 位新使用者重載驗證，候選 ID 與分數通過核對，召回分數的最大絕對差為 0，匯出的 80 位使用者推薦 ID 與分數也通過核對。
 
@@ -121,12 +121,12 @@ print(result[["content_id", "title", "score"]])
 
 ## 9. 安裝、訓練與檢查
 
-本次訓練使用 macOS ARM64、Python 3.9.6 與 PyTorch 2.6.0，神經模型依賴獨立放在 `requirements-neural.txt`，安裝後可執行以下流程。
+本次訓練使用 macOS ARM64、Python 3.9.6 與 PyTorch 2.6.0，神經模型依賴獨立放在 `requirements/requirements-neural.txt`，安裝後可執行以下流程。
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements-neural.txt
+python -m pip install -r requirements/requirements-neural.txt
 python -m pip check
 python -m pytest -q
 python -m src.run_neural

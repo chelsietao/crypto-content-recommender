@@ -93,7 +93,7 @@
 | mps    | V8 神經排序器 | batched_baseline |         2.737 |        46375   |
 | mps    | V8 神經排序器 | batched          |         1.833 |        64077.5 |
 
-![本次六回合吞吐量](reports/gpu_profile_audit/throughput.png)
+![本次六回合吞吐量](../reports/gpu_profile_audit/throughput.png)
 
 CPU、MPS 逐筆及批次路徑的數值保留於同一份摘要，推薦結果延續前版的裝置、精度、內容 ID、數量與順序核對，記憶體取樣與同步階段計時也保存於本次目錄。
 
@@ -108,7 +108,7 @@ CPU、MPS 逐筆及批次路徑的數值保留於同一份摘要，推薦結果�
 以下指令會完成六回合 MPS 量測，量測結束後驗證產出，再執行繪圖與獨立結果檢查。
 
 ```bash
-python -m pip install -r requirements-gpu.txt
+python -m pip install -r requirements/requirements-gpu.txt
 PYTORCH_ENABLE_MPS_FALLBACK=0 python -m pytest -q
 python -m src.run_neural --verify-only
 PYTORCH_ENABLE_MPS_FALLBACK=0 python -m src.profile_gpu \
@@ -124,19 +124,19 @@ GitHub Actions 執行本次回歸案例與已匯出報告的 `--verify-only`，M
 
 | 檔案 | 內容 |
 |---|---|
-| [src/profile_gpu.py](src/profile_gpu.py) | 六回合輪替、checkpoint 核對與 profiling |
-| [src/gpu_report.py](src/gpu_report.py) | 統計重算、逐回合倍率與產出驗證 |
-| [src/plot_gpu_profile.py](src/plot_gpu_profile.py) | 驗證後產圖 |
-| [tests/test_gpu_report.py](tests/test_gpu_report.py) | 本次量測方法與資料完整性案例 |
-| [逐批計時](reports/gpu_profile_audit/timings.csv) | 3,360 筆延遲、回合與模式位置 |
-| [模式順序](reports/gpu_profile_audit/mode_schedule.csv) | 336 筆實際執行順序 |
-| [逐回合倍率](reports/gpu_profile_audit/paired_comparison.csv) | 192 筆配對比較 |
-| [摘要](reports/gpu_profile_audit/summary.csv) | 各設定的 p50、p95 與吞吐量 |
-| [執行設定](reports/gpu_profile_audit/results.json) | 硬體、來源雜湊、使用者及量測設定 |
-| [逐組推薦核對](reports/gpu_profile_audit/variant_validation.csv) | 各量測路徑的輸出驗證 |
-| [精度核對](reports/gpu_profile_audit/precision_validation.csv) | 固定使用者的精度結果 |
-| [記憶體取樣](reports/gpu_profile_audit/memory_samples.csv) | MPS 張量與 Metal 驅動配置 |
-| [階段計時](reports/gpu_profile_audit/stages.csv) | 原路徑與優化路徑的同步計時 |
-| [CPU 派發 trace](reports/gpu_profile_audit/cpu_dispatch_trace.json) | 主機算子及 profiling 階段 |
-| [檔案雜湊](reports/gpu_profile_audit/manifest.json) | 本次產出檔案的 SHA-256 |
+| [src/profile_gpu.py](../src/profile_gpu.py) | 六回合輪替、checkpoint 核對與 profiling |
+| [src/gpu_report.py](../src/gpu_report.py) | 統計重算、逐回合倍率與產出驗證 |
+| [src/plot_gpu_profile.py](../src/plot_gpu_profile.py) | 驗證後產圖 |
+| [tests/test_gpu_report.py](../tests/test_gpu_report.py) | 本次量測方法與資料完整性案例 |
+| [逐批計時](../reports/gpu_profile_audit/timings.csv) | 3,360 筆延遲、回合與模式位置 |
+| [模式順序](../reports/gpu_profile_audit/mode_schedule.csv) | 336 筆實際執行順序 |
+| [逐回合倍率](../reports/gpu_profile_audit/paired_comparison.csv) | 192 筆配對比較 |
+| [摘要](../reports/gpu_profile_audit/summary.csv) | 各設定的 p50、p95 與吞吐量 |
+| [執行設定](../reports/gpu_profile_audit/results.json) | 硬體、來源雜湊、使用者及量測設定 |
+| [逐組推薦核對](../reports/gpu_profile_audit/variant_validation.csv) | 各量測路徑的輸出驗證 |
+| [精度核對](../reports/gpu_profile_audit/precision_validation.csv) | 固定使用者的精度結果 |
+| [記憶體取樣](../reports/gpu_profile_audit/memory_samples.csv) | MPS 張量與 Metal 驅動配置 |
+| [階段計時](../reports/gpu_profile_audit/stages.csv) | 原路徑與優化路徑的同步計時 |
+| [CPU 派發 trace](../reports/gpu_profile_audit/cpu_dispatch_trace.json) | 主機算子及 profiling 階段 |
+| [檔案雜湊](../reports/gpu_profile_audit/manifest.json) | 本次產出檔案的 SHA-256 |
 | [前版修正說明](README_GPU_PROFILING_REVIEW.md) | 候選上限與逐組結果核對 |

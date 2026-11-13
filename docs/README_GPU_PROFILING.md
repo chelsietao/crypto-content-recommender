@@ -90,7 +90,7 @@ CPU trace 描述主機派發，GPU 階段耗時來自同步計時，整批效能
 | V8 神經排序器 |         32 |             87373.4 |             17969.2 |             21063.9 |
 | V8 神經排序器 |        128 |             95276.3 |             76299.6 |            111142   |
 
-![批次與精度吞吐量](reports/gpu_profile/throughput.png)
+![批次與精度吞吐量](../reports/gpu_profile/throughput.png)
 
 本次 CPU FP32 批次路徑在兩個模型的批次大小 128 上，吞吐量分別為 481,549.9 與 95,276.3 筆／秒，圖表保留 CPU 與 MPS 各路徑的實測值，這些數值的範圍為已準備輸入至裝置上的推薦輸出。
 
@@ -140,7 +140,7 @@ MPS 記憶體以 `current_allocated_memory` 與 `driver_allocated_memory` 讀取
 安裝本版本依賴後，可在具有 MPS GPU 的 macOS 環境執行以下流程，profiling 會核對 FP32 結果並產出計時、驗證資料與 trace。
 
 ```bash
-python -m pip install -r requirements-gpu.txt
+python -m pip install -r requirements/requirements-gpu.txt
 PYTORCH_ENABLE_MPS_FALLBACK=0 python -m pytest -q
 python -m src.run_neural --verify-only
 PYTORCH_ENABLE_MPS_FALLBACK=0 python -m src.profile_gpu \
@@ -154,20 +154,20 @@ python -m src.plot_gpu_profile
 
 | 檔案 | 內容 |
 |---|---|
-| [src/gpu_inference.py](src/gpu_inference.py) | 常駐裝置的批次雙塔、排序器與排序優化 |
-| [src/profile_gpu.py](src/profile_gpu.py) | 同步計時、精度核對、MPS 取樣與 trace |
-| [src/plot_gpu_profile.py](src/plot_gpu_profile.py) | 從實測 CSV 產生吞吐量圖 |
-| [tests/test_gpu_inference.py](tests/test_gpu_inference.py) | 批次、已讀遮罩、同分排序、GPU 與精度核對 |
-| [完整結果](reports/gpu_profile/results.json) | 環境、checkpoint、程式雜湊與效能摘要 |
-| [效能摘要](reports/gpu_profile/summary.csv) | 所有裝置、精度、模式與批次設定 |
-| [逐批計時](reports/gpu_profile/timings.csv) | 每批延遲與回合索引 |
-| [階段計時](reports/gpu_profile/stages.csv) | 原路徑與優化路徑的同步階段延遲 |
-| [排序呼叫次數](reports/gpu_profile/sort_calls.csv) | trace 中各階段的排序算子呼叫 |
-| [CPU 派發 trace](reports/gpu_profile/cpu_dispatch_trace.json) | Chrome trace 格式的主機算子與階段記錄 |
-| [CPU 算子摘要](reports/gpu_profile/cpu_operators.csv) | 主機算子次數與 CPU 時間 |
-| [精度核對](reports/gpu_profile/precision_validation.csv) | 逐位使用者的推薦順序、集合與分數 |
-| [記憶體樣本](reports/gpu_profile/memory_samples.csv) | MPS 張量與 Metal 驅動配置 |
-| [輸入準備](reports/gpu_profile/input_preparation.csv) | 特徵準備與傳入裝置的計時 |
-| [檔案雜湊](reports/gpu_profile/manifest.json) | 產出檔案的 SHA-256 |
+| [src/gpu_inference.py](../src/gpu_inference.py) | 常駐裝置的批次雙塔、排序器與排序優化 |
+| [src/profile_gpu.py](../src/profile_gpu.py) | 同步計時、精度核對、MPS 取樣與 trace |
+| [src/plot_gpu_profile.py](../src/plot_gpu_profile.py) | 從實測 CSV 產生吞吐量圖 |
+| [tests/test_gpu_inference.py](../tests/test_gpu_inference.py) | 批次、已讀遮罩、同分排序、GPU 與精度核對 |
+| [完整結果](../reports/gpu_profile/results.json) | 環境、checkpoint、程式雜湊與效能摘要 |
+| [效能摘要](../reports/gpu_profile/summary.csv) | 所有裝置、精度、模式與批次設定 |
+| [逐批計時](../reports/gpu_profile/timings.csv) | 每批延遲與回合索引 |
+| [階段計時](../reports/gpu_profile/stages.csv) | 原路徑與優化路徑的同步階段延遲 |
+| [排序呼叫次數](../reports/gpu_profile/sort_calls.csv) | trace 中各階段的排序算子呼叫 |
+| [CPU 派發 trace](../reports/gpu_profile/cpu_dispatch_trace.json) | Chrome trace 格式的主機算子與階段記錄 |
+| [CPU 算子摘要](../reports/gpu_profile/cpu_operators.csv) | 主機算子次數與 CPU 時間 |
+| [精度核對](../reports/gpu_profile/precision_validation.csv) | 逐位使用者的推薦順序、集合與分數 |
+| [記憶體樣本](../reports/gpu_profile/memory_samples.csv) | MPS 張量與 Metal 驅動配置 |
+| [輸入準備](../reports/gpu_profile/input_preparation.csv) | 特徵準備與傳入裝置的計時 |
+| [檔案雜湊](../reports/gpu_profile/manifest.json) | 產出檔案的 SHA-256 |
 
 MPS 同步、記憶體與 profiler API 的定義，依 [PyTorch 2.6 MPS 官方文件](https://docs.pytorch.org/docs/2.6/mps.html)，本文件中的數值來自上述實測產出。

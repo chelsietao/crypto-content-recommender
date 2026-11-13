@@ -24,7 +24,7 @@
 
 兩份既有 CPU 報告通過新版驗證，每份涵蓋 23 個檔案與 1,440 個全域訓練步驟，四份 checkpoint 及原始訓練曲線的檔案內容保持一致。
 
-本次修改位於產出驗證流程，模型參數、推薦結果與既有訓練時間均保留，逐項驗證結果見 [本次驗證摘要](reports/ddp_history_review.json)。
+本次修改位於產出驗證流程，模型參數、推薦結果與既有訓練時間均保留，逐項驗證結果見 [本次驗證摘要](../reports/ddp_history_review.json)。
 
 完整本機測試共 182 項通過，包含新增的兩項曲線修改測試、CPU 雙程序訓練與 MPS 檢查。
 
@@ -33,7 +33,7 @@
 安裝神經模型依賴後，以下命令會載入既有 checkpoint，核對曲線並重新計算推薦與評估結果。
 
 ```bash
-python -m pip install -r requirements-neural.txt
+python -m pip install -r requirements/requirements-neural.txt
 python -m src.validate_distributed --verify-only --output reports/ddp_cpu_reference
 python -m src.validate_distributed --verify-only --output reports/ddp_cpu_validation
 ```

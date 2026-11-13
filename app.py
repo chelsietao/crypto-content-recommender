@@ -204,4 +204,4 @@ with neural_tab:
         st.markdown("#### Training curves")
         curve_path = (REPORTS_DIR / "transformer_reranking" / "training_curves.png") if chosen_model.startswith("v9_") else (Path(__file__).parent / "artifacts/neural/training_curves.png")
         st.image(str(curve_path), caption="Saved training and validation losses with selected checkpoints")
-        st.link_button("Transformer quality and cost report", "https://github.com/chelsietao/crypto-content-recommender/blob/main/README_TRANSFORMER_RERANKING.md")
+        st.link_button("Transformer quality and cost report", "https://github.com/chelsietao/crypto-content-recommender/blob/main/docs/README_TRANSFORMER_RERANKING.md")

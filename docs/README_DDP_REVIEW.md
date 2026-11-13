@@ -53,14 +53,14 @@ POSIX 系統的訓練啟動器使用獨立 session，清理時對程序群組及
 
 本次更新報告格式與檔案清單，保留四份 checkpoint、訓練曲線、訓練時間與推薦指標，並以重新載入及推論核對既有結果。
 
-新增 25 項測試涵蓋檔案缺漏、整步與整個 epoch 缺漏、分片樣本數、損失選模、通訊資料、裝置標記、推薦與評估修改，以及同群組和獨立 session 的工作程序清理，完整測試共 180 項通過，包含本機 MPS 檢查與 CPU 雙程序整合測試，結果另見 [驗證摘要](reports/ddp_verification_review.json)。
+新增 25 項測試涵蓋檔案缺漏、整步與整個 epoch 缺漏、分片樣本數、損失選模、通訊資料、裝置標記、推薦與評估修改，以及同群組和獨立 session 的工作程序清理，完整測試共 180 項通過，包含本機 MPS 檢查與 CPU 雙程序整合測試，結果另見 [驗證摘要](../reports/ddp_verification_review.json)。
 
 ## 重現方式
 
 安裝依賴後，使用既有報告執行完整驗證，命令會重新載入 checkpoint 並核對推薦與評估結果。
 
 ```bash
-python -m pip install -r requirements-neural.txt
+python -m pip install -r requirements/requirements-neural.txt
 python -m src.validate_distributed --verify-only --output reports/ddp_cpu_reference
 python -m src.validate_distributed --verify-only --output reports/ddp_cpu_validation
 ```
@@ -82,5 +82,5 @@ GitHub Actions 的 neural 工作包含新增測試及兩份 CPU 報告驗證，�
 | `src/process_runner.py` | 訓練啟動器、程序群組與程序樹清理 |
 | `src/validate_distributed.py` | 串接完整驗證與啟動器清理 |
 | `tests/test_ddp_artifacts.py` | 產出修改與程序清理測試 |
-| `requirements-neural.txt` | 明列程序管理所需的 psutil 版本 |
+| `requirements/requirements-neural.txt` | 明列程序管理所需的 psutil 版本 |
 | `.github/workflows/verify.yml` | 納入新增測試與兩份 CPU 報告驗證 |

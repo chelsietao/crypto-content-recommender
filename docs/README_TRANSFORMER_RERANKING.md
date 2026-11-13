@@ -26,7 +26,7 @@ V9 使用與 V8 相同的候選曝光樣本，訓練區段有 533 筆、驗證�
 
 本次 Transformer 的樣本建立及訓練耗時為 6.618 秒，程序 CPU 時間為 6.500 秒，計時範圍包含 Transformer 樣本建立與訓練，既有雙塔的訓練結果由 checkpoint 載入。
 
-![Transformer training curves](reports/transformer_reranking/training_curves.png)
+![Transformer training curves](../reports/transformer_reranking/training_curves.png)
 
 ## 推薦品質
 
@@ -76,14 +76,14 @@ checkpoint 對應的基礎雙塔檔案以 SHA-256 綁定，重新載入後核對
 
 驗證入口會核對全部產出雜湊、訓練曲線與 checkpoint、樣本時間區段、推薦結果及品質指標，並由原始請求紀錄重算 p50、p95、p99、吞吐量與資源摘要，測試涵蓋曲線、指標、效能摘要及請求缺漏的修改情境。
 
-完整本機測試共 198 項通過，其中新增 16 項 Transformer 測試，並執行 CPU 雙程序 DDP 與關閉 CPU fallback 的 MPS 檢查，摘要保存於 [版本驗證紀錄](reports/TRANSFORMER_VALIDATION.json)。
+完整本機測試共 198 項通過，其中新增 16 項 Transformer 測試，並執行 CPU 雙程序 DDP 與關閉 CPU fallback 的 MPS 檢查，摘要保存於 [版本驗證紀錄](../reports/TRANSFORMER_VALIDATION.json)。
 
 ## 執行方式
 
 安裝依賴後，使用空的輸出目錄執行訓練與量測，命令會保存 checkpoint 並執行產出驗證。
 
 ```bash
-python -m pip install -r requirements-neural.txt
+python -m pip install -r requirements/requirements-neural.txt
 python -m src.run_transformer --output reports/transformer_reranking_new
 ```
 

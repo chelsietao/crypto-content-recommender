@@ -78,7 +78,7 @@ FP32 的推薦 ID、順序與評估指標通過核對，雙塔參數最大差為
 安裝專案依賴後，可用下列指令重現本次 CPU 數值參考與排序核對。
 
 ```bash
-python -m pip install -r requirements-gpu.txt
+python -m pip install -r requirements/requirements-gpu.txt
 python -m src.validate_distributed --device cpu --precision float64 \
   --epochs 30 --output reports/ddp_cpu_reference
 python -m src.validate_distributed --device cpu --precision float32 \
@@ -94,18 +94,18 @@ RUN_DDP_INTEGRATION=1 python -m pytest -q
 
 | 檔案 | 內容 |
 |---|---|
-| [src/distributed_training.py](src/distributed_training.py) | DDP 訓練、樣本加權、選模與通訊取樣 |
-| [src/train_distributed.py](src/train_distributed.py) | torchrun 工作程序入口與輸出 |
-| [src/validate_distributed.py](src/validate_distributed.py) | 一程序／二程序比較與產出驗證 |
-| [tests/test_distributed_training.py](tests/test_distributed_training.py) | 全域梯度、不平均分片、尾批與整合測試 |
-| [scripts/run_ddp_gpu.sh](scripts/run_ddp_gpu.sh) | CUDA 裝置條件檢查與 NCCL 執行入口 |
-| [FP64 比較結果](reports/ddp_cpu_reference/comparison.json) | CPU 數值參考結果 |
-| [FP32 比較結果](reports/ddp_cpu_validation/comparison.json) | CPU 排序與數值差異紀錄 |
-| [FP64 二程序訓練摘要](reports/ddp_cpu_reference/round_0_world_2/results.json) | 時間、設定與各階段選模 |
-| [FP32 二程序訓練摘要](reports/ddp_cpu_validation/round_0_world_2/results.json) | 原有精度的訓練與選模 |
-| [二程序步驟紀錄](reports/ddp_cpu_reference/round_0_world_2/steps_rank_1.csv) | 各批樣本數與耗時 |
-| [二程序通訊紀錄](reports/ddp_cpu_reference/round_0_world_2/communication.csv) | Gloo all-reduce 取樣 |
-| [FP64 二程序 checkpoint](reports/ddp_cpu_reference/round_0_world_2/neural_recommender.pt) | 已執行數值參考的模型 |
-| [FP32 二程序 checkpoint](reports/ddp_cpu_validation/round_0_world_2/neural_recommender.pt) | 已執行排序核對的模型 |
+| [src/distributed_training.py](../src/distributed_training.py) | DDP 訓練、樣本加權、選模與通訊取樣 |
+| [src/train_distributed.py](../src/train_distributed.py) | torchrun 工作程序入口與輸出 |
+| [src/validate_distributed.py](../src/validate_distributed.py) | 一程序／二程序比較與產出驗證 |
+| [tests/test_distributed_training.py](../tests/test_distributed_training.py) | 全域梯度、不平均分片、尾批與整合測試 |
+| [scripts/run_ddp_gpu.sh](../scripts/run_ddp_gpu.sh) | CUDA 裝置條件檢查與 NCCL 執行入口 |
+| [FP64 比較結果](../reports/ddp_cpu_reference/comparison.json) | CPU 數值參考結果 |
+| [FP32 比較結果](../reports/ddp_cpu_validation/comparison.json) | CPU 排序與數值差異紀錄 |
+| [FP64 二程序訓練摘要](../reports/ddp_cpu_reference/round_0_world_2/results.json) | 時間、設定與各階段選模 |
+| [FP32 二程序訓練摘要](../reports/ddp_cpu_validation/round_0_world_2/results.json) | 原有精度的訓練與選模 |
+| [二程序步驟紀錄](../reports/ddp_cpu_reference/round_0_world_2/steps_rank_1.csv) | 各批樣本數與耗時 |
+| [二程序通訊紀錄](../reports/ddp_cpu_reference/round_0_world_2/communication.csv) | Gloo all-reduce 取樣 |
+| [FP64 二程序 checkpoint](../reports/ddp_cpu_reference/round_0_world_2/neural_recommender.pt) | 已執行數值參考的模型 |
+| [FP32 二程序 checkpoint](../reports/ddp_cpu_validation/round_0_world_2/neural_recommender.pt) | 已執行排序核對的模型 |
 
 DDP 與通訊後端的 API 定義，依 [PyTorch 2.6 分散式訓練官方文件](https://docs.pytorch.org/docs/2.6/distributed.html)，本文件的數值來自上述 CPU 執行結果。

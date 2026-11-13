@@ -43,7 +43,7 @@ curl http://127.0.0.1:8000/recommend \
 | V9 | 1 | 200 | 5.195 | 6.051 | 6.321 | 189.68 |
 | V9 | 4 | 200 | 16.878 | 17.742 | 18.118 | 238.06 |
 
-延遲包含客戶端請求建立、HTTP 傳輸、排隊、JSON 解析與結果驗證，每組測試先對每個併發工作暖機五次，暖機不列入統計，原始請求、逐回合數據、硬體設定與摘要保存於 [service_v12_benchmark](reports/service_v12_benchmark/)。
+延遲包含客戶端請求建立、HTTP 傳輸、排隊、JSON 解析與結果驗證，每組測試先對每個併發工作暖機五次，暖機不列入統計，原始請求、逐回合數據、硬體設定與摘要保存於 [service_v12_benchmark](../reports/service_v12_benchmark/)。
 
 ```bash
 python -m src.benchmark_service --requests 100 --concurrency 1 4 \
@@ -63,7 +63,7 @@ python -m src.benchmark_service --requests 100 --concurrency 1 4 \
 `src/evaluate_repository.py` 由固定合成資料與共同時間切分開始，訓練六種基線、載入經驗證的 V7、V8、V9 checkpoint，再重新計算九模型的品質與推薦，輸出目錄要求為空目錄。
 
 ```bash
-python -m pip install -r requirements-service.txt
+python -m pip install -r requirements/requirements-service.txt
 python -m src.evaluate_repository --output reports/repository_evaluation_new
 python -m src.evaluate_repository --verify-only
 ```
@@ -78,7 +78,7 @@ python -m src.evaluate_repository --verify-only
 
 品質區間以 V6 為參照，每個模型分別計算逐位使用者的 Hit 與 NDCG 差值，共產生 18 列統計，採用固定亂數種子的 2,000 次使用者配對 bootstrap，V6 自身的差值與區間均為 0。
 
-評估產出保存於 [repository_evaluation](reports/repository_evaluation/)，包含 9 列模型指標、270 列逐位使用者結果、243 組神經模型推薦、候選規則、品質區間與執行摘要，`--verify-only` 會從模型重新計算並核對全部表格。推薦 ID 與順序逐筆比對，分數沿用推論驗證的絕對容差 1e-6 與相對容差 1e-5，以容納 macOS 與 Linux 的 FP32 捨入差異。
+評估產出保存於 [repository_evaluation](../reports/repository_evaluation/)，包含 9 列模型指標、270 列逐位使用者結果、243 組神經模型推薦、候選規則、品質區間與執行摘要，`--verify-only` 會從模型重新計算並核對全部表格。推薦 ID 與順序逐筆比對，分數沿用推論驗證的絕對容差 1e-6 與相對容差 1e-5，以容納 macOS 與 Linux 的 FP32 捨入差異。
 
 ## 驗證與修改檔案
 
@@ -98,4 +98,4 @@ Streamlit 操作測試會開啟展示、選擇 V9 與新使用者，核對九模
 | `src/portfolio_exports.py` | 不載入權重的展示資料驗證與讀取 |
 | `app.py` | 九模型及 V9 推薦展示 |
 
-GitHub Actions 納入九模型重建及驗證，基礎工作執行展示操作測試，神經模型工作執行三模型服務與評估回歸，測試與量測摘要見 [整合驗證紀錄](reports/SYSTEM_INTEGRATION_VALIDATION.json)。
+GitHub Actions 納入九模型重建及驗證，基礎工作執行展示操作測試，神經模型工作執行三模型服務與評估回歸，測試與量測摘要見 [整合驗證紀錄](../reports/SYSTEM_INTEGRATION_VALIDATION.json)。

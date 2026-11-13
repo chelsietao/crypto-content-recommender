@@ -78,7 +78,7 @@ API 與負載產生器共用嚴格回應模型，使用者 ID、模型名稱、c
 安裝服務依賴後可使用以下指令啟動，新增的容量與等待參數會顯示於就緒回應。
 
 ```bash
-python -m pip install -r requirements-service.txt
+python -m pip install -r requirements/requirements-service.txt
 python -m src.serve_neural \
   --host 127.0.0.1 --port 8000 --torch-threads 1 \
   --max-inflight 32 --queue-timeout 1.0
@@ -109,12 +109,12 @@ python -m src.benchmark_service \
 
 | 檔案 | 內容 |
 |---|---|
-| [src/serve_neural.py](src/serve_neural.py) | 容量限制、等待期限、資源釋放與回應模型 |
-| [src/benchmark_service.py](src/benchmark_service.py) | 嚴格回應驗證與 HTTP 量測 |
-| [服務測試](tests/test_service.py) | 容量拒絕、逾時、模型錯誤與恢復測試 |
-| [量測驗證測試](tests/test_benchmark_service.py) | 格式、身分、結果與錯誤統計測試 |
-| [效能摘要](reports/service_review_benchmark/summary.csv) | 六組設定的百分位延遲、吞吐量與錯誤數 |
-| [完整量測結果](reports/service_review_benchmark/results.json) | 環境、設定、checkpoint、程式雜湊與回合明細 |
-| [逐筆請求紀錄](reports/service_review_benchmark/requests.csv) | 9,000 筆請求的延遲、狀態與驗證結果 |
-| [結果檔案雜湊](reports/service_review_benchmark/manifest.json) | 三個結果檔案的 SHA-256 |
+| [src/serve_neural.py](../src/serve_neural.py) | 容量限制、等待期限、資源釋放與回應模型 |
+| [src/benchmark_service.py](../src/benchmark_service.py) | 嚴格回應驗證與 HTTP 量測 |
+| [服務測試](../tests/test_service.py) | 容量拒絕、逾時、模型錯誤與恢復測試 |
+| [量測驗證測試](../tests/test_benchmark_service.py) | 格式、身分、結果與錯誤統計測試 |
+| [效能摘要](../reports/service_review_benchmark/summary.csv) | 六組設定的百分位延遲、吞吐量與錯誤數 |
+| [完整量測結果](../reports/service_review_benchmark/results.json) | 環境、設定、checkpoint、程式雜湊與回合明細 |
+| [逐筆請求紀錄](../reports/service_review_benchmark/requests.csv) | 9,000 筆請求的延遲、狀態與驗證結果 |
+| [結果檔案雜湊](../reports/service_review_benchmark/manifest.json) | 三個結果檔案的 SHA-256 |
 | [初版服務說明](README_INFERENCE_SERVICE.md) | API 使用方式與初版效能紀錄 |
